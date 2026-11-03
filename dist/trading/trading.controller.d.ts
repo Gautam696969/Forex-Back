@@ -1,0 +1,226 @@
+import { TradingService } from './trading.service.js';
+import { CreateOrderDto } from './dto/create-order.dto.js';
+export declare class TradingController {
+    private tradingService;
+    constructor(tradingService: TradingService);
+    createOrder(req: any, body: CreateOrderDto): Promise<{
+        success: boolean;
+        order: {
+            symbol: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            type: string;
+            lots: number;
+            targetPrice: number | null;
+            stopLoss: number | null;
+            takeProfit: number | null;
+            status: string;
+            accountId: string;
+        };
+        message: string;
+        position?: undefined;
+        account?: undefined;
+    } | {
+        success: boolean;
+        position: {
+            symbol: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            type: string;
+            lots: number;
+            stopLoss: number | null;
+            takeProfit: number | null;
+            status: string;
+            accountId: string;
+            entryPrice: number;
+            currentPrice: number;
+            requiredMargin: number;
+            unrealizedPnl: number;
+            unrealizedPips: number;
+            swap: number;
+            commission: number;
+            openedAt: Date;
+            closedAt: Date | null;
+        };
+        account: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            accountNumber: string;
+            balance: number;
+            equity: number;
+            usedMargin: number;
+            freeMargin: number;
+            marginLevel: number;
+            currency: string;
+            leverage: number;
+            isDemo: boolean;
+            userId: string;
+        };
+        message: string;
+        order?: undefined;
+    }>;
+    getPositions(req: any): Promise<{
+        currentPrice: number;
+        unrealizedPnl: number;
+        unrealizedPips: number;
+        symbol: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        type: string;
+        lots: number;
+        stopLoss: number | null;
+        takeProfit: number | null;
+        status: string;
+        accountId: string;
+        entryPrice: number;
+        requiredMargin: number;
+        swap: number;
+        commission: number;
+        openedAt: Date;
+        closedAt: Date | null;
+    }[]>;
+    closePosition(req: any, positionId: string): Promise<{
+        success: boolean;
+        trade: {
+            symbol: string;
+            id: string;
+            type: string;
+            lots: number;
+            stopLoss: number | null;
+            takeProfit: number | null;
+            accountId: string;
+            swap: number;
+            commission: number;
+            openedAt: Date;
+            closedAt: Date;
+            positionId: string;
+            openPrice: number;
+            closePrice: number;
+            realizedPnl: number;
+            realizedPips: number;
+            closeReason: string;
+        };
+        realizedPnl: number;
+        message: string;
+    }>;
+    closeAllPositions(req: any): Promise<{
+        success: boolean;
+        closedCount: number;
+        results: {
+            success: boolean;
+            trade: {
+                symbol: string;
+                id: string;
+                type: string;
+                lots: number;
+                stopLoss: number | null;
+                takeProfit: number | null;
+                accountId: string;
+                swap: number;
+                commission: number;
+                openedAt: Date;
+                closedAt: Date;
+                positionId: string;
+                openPrice: number;
+                closePrice: number;
+                realizedPnl: number;
+                realizedPips: number;
+                closeReason: string;
+            };
+            realizedPnl: number;
+            message: string;
+        }[];
+    }>;
+    modifyPosition(req: any, positionId: string, body: {
+        stopLoss?: number;
+        takeProfit?: number;
+    }): Promise<{
+        success: boolean;
+        position: {
+            symbol: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            type: string;
+            lots: number;
+            stopLoss: number | null;
+            takeProfit: number | null;
+            status: string;
+            accountId: string;
+            entryPrice: number;
+            currentPrice: number;
+            requiredMargin: number;
+            unrealizedPnl: number;
+            unrealizedPips: number;
+            swap: number;
+            commission: number;
+            openedAt: Date;
+            closedAt: Date | null;
+        };
+    }>;
+    getPendingOrders(req: any): Promise<{
+        symbol: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        type: string;
+        lots: number;
+        targetPrice: number | null;
+        stopLoss: number | null;
+        takeProfit: number | null;
+        status: string;
+        accountId: string;
+    }[]>;
+    cancelOrder(req: any, orderId: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    getTradeHistory(req: any, symbol?: string, limit?: string, offset?: string): Promise<{
+        symbol: string;
+        id: string;
+        type: string;
+        lots: number;
+        stopLoss: number | null;
+        takeProfit: number | null;
+        accountId: string;
+        swap: number;
+        commission: number;
+        openedAt: Date;
+        closedAt: Date;
+        positionId: string;
+        openPrice: number;
+        closePrice: number;
+        realizedPnl: number;
+        realizedPips: number;
+        closeReason: string;
+    }[]>;
+    getAccountSummary(req: any): Promise<{
+        account: {
+            equity: number;
+            usedMargin: number;
+            freeMargin: number;
+            marginLevel: number;
+            totalUnrealizedPnl: number;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            accountNumber: string;
+            balance: number;
+            currency: string;
+            leverage: number;
+            isDemo: boolean;
+            userId: string;
+        };
+        stats: {
+            totalTrades: number;
+            winningTrades: number;
+            losingTrades: number;
+            winRate: number;
+            totalRealizedPnl: number;
+        };
+    }>;
+}

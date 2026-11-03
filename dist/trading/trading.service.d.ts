@@ -1,0 +1,241 @@
+import { OnModuleInit } from '@nestjs/common';
+import { PrismaService } from '../prisma.service.js';
+import { ForexEngineService } from '../market/forex-engine.service.js';
+import { MarketGateway } from '../market/market.gateway.js';
+import { CreateOrderDto } from './dto/create-order.dto.js';
+export declare class TradingService implements OnModuleInit {
+    private prisma;
+    private forexEngine;
+    private marketGateway;
+    private lastEvaluationTime;
+    constructor(prisma: PrismaService, forexEngine: ForexEngineService, marketGateway: MarketGateway);
+    onModuleInit(): void;
+    createOrder(userId: string, dto: CreateOrderDto): Promise<{
+        success: boolean;
+        order: {
+            symbol: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            type: string;
+            lots: number;
+            targetPrice: number | null;
+            stopLoss: number | null;
+            takeProfit: number | null;
+            status: string;
+            accountId: string;
+        };
+        message: string;
+        position?: undefined;
+        account?: undefined;
+    } | {
+        success: boolean;
+        position: {
+            symbol: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            type: string;
+            lots: number;
+            stopLoss: number | null;
+            takeProfit: number | null;
+            status: string;
+            accountId: string;
+            entryPrice: number;
+            currentPrice: number;
+            requiredMargin: number;
+            unrealizedPnl: number;
+            unrealizedPips: number;
+            swap: number;
+            commission: number;
+            openedAt: Date;
+            closedAt: Date | null;
+        };
+        account: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            accountNumber: string;
+            balance: number;
+            equity: number;
+            usedMargin: number;
+            freeMargin: number;
+            marginLevel: number;
+            currency: string;
+            leverage: number;
+            isDemo: boolean;
+            userId: string;
+        };
+        message: string;
+        order?: undefined;
+    }>;
+    closePosition(userId: string, positionId: string, reason?: string): Promise<{
+        success: boolean;
+        trade: {
+            symbol: string;
+            id: string;
+            type: string;
+            lots: number;
+            stopLoss: number | null;
+            takeProfit: number | null;
+            accountId: string;
+            swap: number;
+            commission: number;
+            openedAt: Date;
+            closedAt: Date;
+            positionId: string;
+            openPrice: number;
+            closePrice: number;
+            realizedPnl: number;
+            realizedPips: number;
+            closeReason: string;
+        };
+        realizedPnl: number;
+        message: string;
+    }>;
+    closeAllPositions(userId: string): Promise<{
+        success: boolean;
+        closedCount: number;
+        results: {
+            success: boolean;
+            trade: {
+                symbol: string;
+                id: string;
+                type: string;
+                lots: number;
+                stopLoss: number | null;
+                takeProfit: number | null;
+                accountId: string;
+                swap: number;
+                commission: number;
+                openedAt: Date;
+                closedAt: Date;
+                positionId: string;
+                openPrice: number;
+                closePrice: number;
+                realizedPnl: number;
+                realizedPips: number;
+                closeReason: string;
+            };
+            realizedPnl: number;
+            message: string;
+        }[];
+    }>;
+    modifyPosition(userId: string, positionId: string, slTp: {
+        stopLoss?: number | null;
+        takeProfit?: number | null;
+    }): Promise<{
+        success: boolean;
+        position: {
+            symbol: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            type: string;
+            lots: number;
+            stopLoss: number | null;
+            takeProfit: number | null;
+            status: string;
+            accountId: string;
+            entryPrice: number;
+            currentPrice: number;
+            requiredMargin: number;
+            unrealizedPnl: number;
+            unrealizedPips: number;
+            swap: number;
+            commission: number;
+            openedAt: Date;
+            closedAt: Date | null;
+        };
+    }>;
+    getOpenPositions(userId: string): Promise<{
+        currentPrice: number;
+        unrealizedPnl: number;
+        unrealizedPips: number;
+        symbol: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        type: string;
+        lots: number;
+        stopLoss: number | null;
+        takeProfit: number | null;
+        status: string;
+        accountId: string;
+        entryPrice: number;
+        requiredMargin: number;
+        swap: number;
+        commission: number;
+        openedAt: Date;
+        closedAt: Date | null;
+    }[]>;
+    getPendingOrders(userId: string): Promise<{
+        symbol: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        type: string;
+        lots: number;
+        targetPrice: number | null;
+        stopLoss: number | null;
+        takeProfit: number | null;
+        status: string;
+        accountId: string;
+    }[]>;
+    cancelOrder(userId: string, orderId: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    getTradeHistory(userId: string, filters?: {
+        symbol?: string;
+        limit?: number;
+        offset?: number;
+    }): Promise<{
+        symbol: string;
+        id: string;
+        type: string;
+        lots: number;
+        stopLoss: number | null;
+        takeProfit: number | null;
+        accountId: string;
+        swap: number;
+        commission: number;
+        openedAt: Date;
+        closedAt: Date;
+        positionId: string;
+        openPrice: number;
+        closePrice: number;
+        realizedPnl: number;
+        realizedPips: number;
+        closeReason: string;
+    }[]>;
+    getAccountSummary(userId: string): Promise<{
+        account: {
+            equity: number;
+            usedMargin: number;
+            freeMargin: number;
+            marginLevel: number;
+            totalUnrealizedPnl: number;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            accountNumber: string;
+            balance: number;
+            currency: string;
+            leverage: number;
+            isDemo: boolean;
+            userId: string;
+        };
+        stats: {
+            totalTrades: number;
+            winningTrades: number;
+            losingTrades: number;
+            winRate: number;
+            totalRealizedPnl: number;
+        };
+    }>;
+    private evaluateActiveTradingState;
+    private refreshAccountMetrics;
+    private calculateMargin;
+    private calculatePnl;
+}
