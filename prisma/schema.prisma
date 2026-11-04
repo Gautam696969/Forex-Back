@@ -12,11 +12,17 @@ model User {
   email              String       @unique
   password           String
   name               String
+  phone              String?
+  pan                String?
   role               String       @default("USER") // USER, ADMIN
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 
   account            Account?
+  sips               SipPlan[]
+  ipoApplications    IpoApplication[]
+  watchlistItems     WatchlistItem[]
+  alerts             PriceAlert[]
   adminAuditLogs     AuditLog[]   @relation("AdminLogs")
   targetedAuditLogs  AuditLog[]   @relation("TargetedLogs")
 }
@@ -25,13 +31,13 @@ model Account {
   id            String         @id @default(uuid())
   userId        String         @unique
   accountNumber String         @unique
-  balance       Float          @default(10000.0)
-  equity        Float          @default(10000.0)
+  balance       Float          @default(100000.0) // ₹1,00,000 virtual balance
+  equity        Float          @default(100000.0)
   usedMargin    Float          @default(0.0)
-  freeMargin    Float          @default(10000.0)
+  freeMargin    Float          @default(100000.0)
   marginLevel   Float          @default(0.0)
-  currency      String         @default("USD")
-  leverage      Int            @default(100)
+  currency      String         @default("INR")
+  leverage      Int            @default(1) // 1:1 or 1:5 for Intraday
   isDemo        Boolean        @default(true)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -45,23 +51,36 @@ model Account {
 
 model CurrencyPair {
   id            String    @id @default(uuid())
-  symbol        String    @unique // e.g. EUR/USD
-  base          String    // EUR
-  quote         String    // USD
-  displayName   String    // EUR / USD
-  category      String    @default("MAJORS") // MAJORS, MINORS, CRYPTO, METALS
-  digits        Int       @default(5)
-  pipSize       Float     @default(0.0001)
-  contractSize  Float     @default(100000)
-  defaultSpread Float     @default(1.2) // in pips
-  minLot        Float     @default(0.01)
-  maxLot        Float     @default(100.0)
-  lotStep       Float     @default(0.01)
+  symbol        String    @unique // e.g. RELIANCE, TCS, NIFTY50, GOLD24K
+  base          String    // e.g. RELIANCE
+  quote         String    @default("INR")
+  displayName   String    // e.g. Reliance Industries Ltd
+  category      String    @default("STOCKS") // INDICES, STOCKS, FNO, COMMODITIES
+  sector        String?   // Energy, IT, Banking, Auto, Pharma, FMCG, Metals
+  digits        Int       @default(2)
+  pipSize       Float     @default(0.05)
+  contractSize  Float     @default(1)
+  defaultSpread Float     @default(0.1)
+  minLot        Float     @default(1.0)
+  maxLot        Float     @default(10000.0)
+  lotStep       Float     @default(1.0)
   currentBid    Float
   currentAsk    Float
   change24h     Float     @default(0.0)
   high24h       Float     @default(0.0)
   low24h        Float     @default(0.0)
+  open24h       Float     @default(0.0)
+  close24h      Float     @default(0.0)
+  volume24h     Float     @default(0.0)
+  marketCap     String?   // e.g. "₹19.4L Cr"
+  peRatio       Float?
+  pbRatio       Float?
+  eps           Float?
+  dividendYield Float?
+  roe           Float?
+  week52High    Float?
+  week52Low     Float?
+  about         String?
   active        Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -72,8 +91,9 @@ model Order {
   accountId   String
   symbol      String
   type        String    // BUY, SELL, BUY_LIMIT, SELL_LIMIT, BUY_STOP, SELL_STOP
+  productType String    @default("DELIVERY") // DELIVERY (CNC), INTRADAY (MIS)
   status      String    @default("PENDING") // PENDING, FILLED, CANCELLED, REJECTED
-  lots        Float
+  lots        Float     // number of shares
   targetPrice Float?
   stopLoss    Float?
   takeProfit  Float?
@@ -88,7 +108,8 @@ model Position {
   accountId      String
   symbol         String
   type           String    // BUY, SELL
-  lots           Float
+  productType    String    @default("DELIVERY") // DELIVERY, INTRADAY
+  lots           Float     // Quantity
   entryPrice     Float
   currentPrice   Float
   stopLoss       Float?
@@ -113,7 +134,8 @@ model TradeHistory {
   positionId   String
   symbol       String
   type         String    // BUY, SELL
-  lots         Float
+  productType  String    @default("DELIVERY")
+  lots         Float     // Quantity
   openPrice    Float
   closePrice   Float
   stopLoss     Float?
@@ -129,10 +151,117 @@ model TradeHistory {
   account      Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
 }
 
+model MutualFund {
+  id                String    @id @default(uuid())
+  schemeCode        String    @unique
+  name              String
+  fundHouse         String    // SBI, HDFC, Parag Parikh, Quant, Mirae Asset
+  category          String    // EQUITY, DEBT, HYBRID, ELSS, INDEX, LIQUID
+  subCategory       String?   // Flexi Cap, Large Cap, Small Cap, Bluechip
+  nav               Float
+  prevNav           Float?
+  dayChange         Float     @default(0.0)
+  dayChangePercent  Float     @default(0.0)
+  rating            Int       @default(5)
+  risk              String    @default("Very High") // Low, Moderate, High, Very High
+  returns1Y         Float     @default(0.0)
+  returns3Y         Float     @default(0.0)
+  returns5Y         Float     @default(0.0)
+  expenseRatio      Float     @default(0.75)
+  aum               String    @default("₹25,000 Cr")
+  minSipAmount      Float     @default(500)
+  fundManager       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  sips              SipPlan[]
+}
+
+model SipPlan {
+  id                  String     @id @default(uuid())
+  userId              String
+  fundId              String
+  monthlyAmount       Float
+  frequency           String     @default("MONTHLY") // MONTHLY, WEEKLY
+  installmentDay      Int        @default(5)
+  startDate           DateTime   @default(now())
+  nextInstallmentDate DateTime
+  status              String     @default("ACTIVE") // ACTIVE, PAUSED, CANCELLED
+  totalInvested       Float      @default(0.0)
+  currentValue        Float      @default(0.0)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  user                User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mutualFund          MutualFund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+}
+
+model Ipo {
+  id               String           @id @default(uuid())
+  symbol           String           @unique
+  companyName      String
+  category         String           @default("MAINLINE") // MAINLINE, SME
+  priceBand        String           // e.g. "₹450 - ₹475"
+  minPrice         Float
+  maxPrice         Float
+  lotSize          Int              // e.g. 30 shares
+  issueSize        String           // e.g. "₹2,400 Cr"
+  openDate         DateTime
+  closeDate        DateTime
+  listingDate      DateTime?
+  gmp              Float?           // Grey Market Premium in ₹
+  subscriptionRate Float            @default(1.0)
+  status           String           @default("UPCOMING") // OPEN, UPCOMING, CLOSED, LISTED
+  about            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  applications     IpoApplication[]
+}
+
+model IpoApplication {
+  id          String   @id @default(uuid())
+  userId      String
+  ipoId       String
+  lots        Int
+  shares      Int
+  bidPrice    Float
+  totalAmount Float
+  upiId       String
+  status      String   @default("APPLIED") // APPLIED, ALLOTTED, NOT_ALLOTTED, CANCELLED
+  appliedAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipo         Ipo      @relation(fields: [ipoId], references: [id], onDelete: Cascade)
+}
+
+model WatchlistItem {
+  id            String   @id @default(uuid())
+  userId        String
+  watchlistName String   @default("My Watchlist")
+  symbol        String
+  assetType     String   @default("STOCK") // STOCK, INDEX, FUND, COMMODITY
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PriceAlert {
+  id          String   @id @default(uuid())
+  userId      String
+  symbol      String
+  targetPrice Float
+  direction   String   // ABOVE, BELOW
+  triggered   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model AccountLedger {
   id            String   @id @default(uuid())
   accountId     String
-  type          String   // INITIAL_DEPOSIT, RESET_BALANCE, MANUAL_DEPOSIT, TRADE_PROFIT, TRADE_LOSS, ADMIN_ADJUSTMENT
+  type          String   // INITIAL_DEPOSIT, RESET_BALANCE, MANUAL_DEPOSIT, TRADE_PROFIT, TRADE_LOSS, ADMIN_ADJUSTMENT, SIP_INSTALLMENT, IPO_APPLICATION
   amount        Float
   balanceBefore Float
   balanceAfter  Float

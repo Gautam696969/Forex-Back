@@ -40,6 +40,16 @@ export declare class WalletController {
             isDemo: boolean;
             userId: string;
         };
+        ledger: {
+            id: string;
+            createdAt: Date;
+            type: string;
+            amount: number;
+            balanceBefore: number;
+            balanceAfter: number;
+            note: string | null;
+            accountId: string;
+        };
         message: string;
     }>;
     getLedger(req: any): Promise<{

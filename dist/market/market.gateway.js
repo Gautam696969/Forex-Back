@@ -39,9 +39,9 @@ let MarketGateway = class MarketGateway {
             return { status: 'joined', room: `account_${data.accountId}` };
         }
     }
-    handleSubscribeSymbol(client, data) {
+    async handleSubscribeSymbol(client, data) {
         if (data?.symbol) {
-            const history = this.forexEngine.getCandleHistory(data.symbol, data.timeframe || '1m');
+            const history = await this.forexEngine.getCandleHistory(data.symbol, data.timeframe || '1m');
             client.emit('market:history', { symbol: data.symbol, history });
         }
     }
@@ -74,7 +74,7 @@ __decorate([
     __param(1, MessageBody()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Socket, Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], MarketGateway.prototype, "handleSubscribeSymbol", null);
 MarketGateway = __decorate([
     Injectable(),
@@ -83,6 +83,8 @@ MarketGateway = __decorate([
             origin: '*',
             credentials: true,
         },
+        pingInterval: 10000,
+        pingTimeout: 5000,
     }),
     __param(0, Inject(forwardRef(() => ForexEngineService))),
     __metadata("design:paramtypes", [ForexEngineService])

@@ -17,7 +17,7 @@ export declare class MarketGateway implements OnGatewayInit, OnGatewayConnection
     handleSubscribeSymbol(client: Socket, data: {
         symbol: string;
         timeframe?: string;
-    }): void;
+    }): Promise<void>;
     notifyAccount(accountId: string, event: string, payload: any): void;
     broadcast(event: string, payload: any): void;
 }

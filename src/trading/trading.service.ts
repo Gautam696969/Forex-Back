@@ -100,7 +100,7 @@ export class TradingService implements OnModuleInit {
 
     if (account.freeMargin < requiredMargin) {
       throw new BadRequestException(
-        `Insufficient free margin. Required: $${requiredMargin.toFixed(2)}, Available: $${account.freeMargin.toFixed(2)}`,
+        `Insufficient funds. Required: ₹${requiredMargin.toLocaleString('en-IN')}, Available: ₹${account.freeMargin.toLocaleString('en-IN')}`,
       );
     }
 
@@ -622,7 +622,7 @@ export class TradingService implements OnModuleInit {
     });
   }
 
-  // Helper: Margin Calculator
+  // Helper: Margin Calculator (Indian Market: Intraday 5x, Delivery 1x)
   private calculateMargin(
     price: number,
     lots: number,
@@ -630,31 +630,13 @@ export class TradingService implements OnModuleInit {
     leverage: number,
     symbol: string,
   ): number {
-    const notional = lots * contractSize;
-
-    if (symbol.endsWith('/INR')) {
-      const usdInrRate = 84.5;
-      return Number(((notional * price) / (usdInrRate * leverage)).toFixed(2));
-    } else if (symbol.startsWith('USD/')) {
-      // e.g. USD/JPY, USD/CHF -> notional is already USD
-      return Number((notional / leverage).toFixed(2));
-    } else if (symbol.endsWith('/USD')) {
-      // e.g. EUR/USD, GBP/USD, AAPL/USD -> notional in EUR/shares * price = USD
-      return Number(((notional * price) / leverage).toFixed(2));
-    } else if (symbol === 'EUR/GBP') {
-      const eurUsd = this.forexEngine.getQuote('EUR/USD')?.bid || 1.084;
-      return Number(((notional * eurUsd) / leverage).toFixed(2));
-    } else if (symbol === 'EUR/JPY' || symbol === 'GBP/JPY') {
-      const baseUsd = symbol.startsWith('EUR')
-        ? this.forexEngine.getQuote('EUR/USD')?.bid || 1.084
-        : this.forexEngine.getQuote('GBP/USD')?.bid || 1.298;
-      return Number(((notional * baseUsd) / leverage).toFixed(2));
-    }
-
-    return Number(((notional * price) / leverage).toFixed(2));
+    const notional = lots * (contractSize || 1) * price;
+    // Standard margin: 1x (or 5x if leverage > 1 for intraday)
+    const effectiveLeverage = leverage > 1 ? leverage : 1;
+    return Number((notional / effectiveLeverage).toFixed(2));
   }
 
-  // Helper: PnL & Pips Calculator
+  // Helper: PnL & Points Calculator (INR)
   private calculatePnl(
     type: string,
     entryPrice: number,
@@ -665,30 +647,11 @@ export class TradingService implements OnModuleInit {
     pipSize: number,
   ): { pnlUsd: number; pnlPips: number } {
     const priceDiff = type === 'BUY' ? currentPrice - entryPrice : entryPrice - currentPrice;
-    const pnlPips = Number((priceDiff / pipSize).toFixed(1));
-    let pnlUsd = 0;
-
-    if (symbol.endsWith('/INR')) {
-      const usdInrRate = 84.5;
-      pnlUsd = (priceDiff * lots * contractSize) / usdInrRate;
-    } else if (symbol.endsWith('/USD')) {
-      // Quote is USD (EUR/USD, GBP/USD, AAPL/USD, BTC/USD, XAU/USD)
-      pnlUsd = priceDiff * lots * contractSize;
-    } else if (symbol.startsWith('USD/')) {
-      // Base is USD (USD/JPY, USD/CHF, USD/CAD)
-      pnlUsd = (priceDiff * lots * contractSize) / currentPrice;
-    } else if (symbol === 'EUR/GBP') {
-      const gbpUsd = this.forexEngine.getQuote('GBP/USD')?.bid || 1.298;
-      pnlUsd = priceDiff * lots * contractSize * gbpUsd;
-    } else if (symbol === 'EUR/JPY' || symbol === 'GBP/JPY') {
-      const usdjpy = this.forexEngine.getQuote('USD/JPY')?.bid || 153.25;
-      pnlUsd = (priceDiff * lots * contractSize) / usdjpy;
-    } else {
-      pnlUsd = priceDiff * lots * contractSize;
-    }
+    const pnlPips = Number((priceDiff / (pipSize || 0.05)).toFixed(1));
+    const pnlInr = priceDiff * lots * (contractSize || 1);
 
     return {
-      pnlUsd: Number(pnlUsd.toFixed(2)),
+      pnlUsd: Number(pnlInr.toFixed(2)),
       pnlPips,
     };
   }

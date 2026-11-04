@@ -73,7 +73,7 @@ let TradingService = class TradingService {
         const entryPrice = dto.type === 'BUY' ? liveQuote.ask : liveQuote.bid;
         const requiredMargin = this.calculateMargin(entryPrice, dto.lots, pair.contractSize, account.leverage, dto.symbol);
         if (account.freeMargin < requiredMargin) {
-            throw new BadRequestException(`Insufficient free margin. Required: $${requiredMargin.toFixed(2)}, Available: $${account.freeMargin.toFixed(2)}`);
+            throw new BadRequestException(`Insufficient funds. Required: ₹${requiredMargin.toLocaleString('en-IN')}, Available: ₹${account.freeMargin.toLocaleString('en-IN')}`);
         }
         const position = await this.prisma.position.create({
             data: {
@@ -477,56 +477,16 @@ let TradingService = class TradingService {
         });
     }
     calculateMargin(price, lots, contractSize, leverage, symbol) {
-        const notional = lots * contractSize;
-        if (symbol.endsWith('/INR')) {
-            const usdInrRate = 84.5;
-            return Number(((notional * price) / (usdInrRate * leverage)).toFixed(2));
-        }
-        else if (symbol.startsWith('USD/')) {
-            return Number((notional / leverage).toFixed(2));
-        }
-        else if (symbol.endsWith('/USD')) {
-            return Number(((notional * price) / leverage).toFixed(2));
-        }
-        else if (symbol === 'EUR/GBP') {
-            const eurUsd = this.forexEngine.getQuote('EUR/USD')?.bid || 1.084;
-            return Number(((notional * eurUsd) / leverage).toFixed(2));
-        }
-        else if (symbol === 'EUR/JPY' || symbol === 'GBP/JPY') {
-            const baseUsd = symbol.startsWith('EUR')
-                ? this.forexEngine.getQuote('EUR/USD')?.bid || 1.084
-                : this.forexEngine.getQuote('GBP/USD')?.bid || 1.298;
-            return Number(((notional * baseUsd) / leverage).toFixed(2));
-        }
-        return Number(((notional * price) / leverage).toFixed(2));
+        const notional = lots * (contractSize || 1) * price;
+        const effectiveLeverage = leverage > 1 ? leverage : 1;
+        return Number((notional / effectiveLeverage).toFixed(2));
     }
     calculatePnl(type, entryPrice, currentPrice, lots, contractSize, symbol, pipSize) {
         const priceDiff = type === 'BUY' ? currentPrice - entryPrice : entryPrice - currentPrice;
-        const pnlPips = Number((priceDiff / pipSize).toFixed(1));
-        let pnlUsd = 0;
-        if (symbol.endsWith('/INR')) {
-            const usdInrRate = 84.5;
-            pnlUsd = (priceDiff * lots * contractSize) / usdInrRate;
-        }
-        else if (symbol.endsWith('/USD')) {
-            pnlUsd = priceDiff * lots * contractSize;
-        }
-        else if (symbol.startsWith('USD/')) {
-            pnlUsd = (priceDiff * lots * contractSize) / currentPrice;
-        }
-        else if (symbol === 'EUR/GBP') {
-            const gbpUsd = this.forexEngine.getQuote('GBP/USD')?.bid || 1.298;
-            pnlUsd = priceDiff * lots * contractSize * gbpUsd;
-        }
-        else if (symbol === 'EUR/JPY' || symbol === 'GBP/JPY') {
-            const usdjpy = this.forexEngine.getQuote('USD/JPY')?.bid || 153.25;
-            pnlUsd = (priceDiff * lots * contractSize) / usdjpy;
-        }
-        else {
-            pnlUsd = priceDiff * lots * contractSize;
-        }
+        const pnlPips = Number((priceDiff / (pipSize || 0.05)).toFixed(1));
+        const pnlInr = priceDiff * lots * (contractSize || 1);
         return {
-            pnlUsd: Number(pnlUsd.toFixed(2)),
+            pnlUsd: Number(pnlInr.toFixed(2)),
             pnlPips,
         };
     }

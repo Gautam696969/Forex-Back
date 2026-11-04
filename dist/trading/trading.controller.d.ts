@@ -11,11 +11,12 @@ export declare class TradingController {
             createdAt: Date;
             updatedAt: Date;
             type: string;
+            status: string;
             lots: number;
             targetPrice: number | null;
             stopLoss: number | null;
             takeProfit: number | null;
-            status: string;
+            productType: string;
             accountId: string;
         };
         message: string;
@@ -29,10 +30,11 @@ export declare class TradingController {
             createdAt: Date;
             updatedAt: Date;
             type: string;
+            status: string;
             lots: number;
             stopLoss: number | null;
             takeProfit: number | null;
-            status: string;
+            productType: string;
             accountId: string;
             entryPrice: number;
             currentPrice: number;
@@ -71,10 +73,11 @@ export declare class TradingController {
         createdAt: Date;
         updatedAt: Date;
         type: string;
+        status: string;
         lots: number;
         stopLoss: number | null;
         takeProfit: number | null;
-        status: string;
+        productType: string;
         accountId: string;
         entryPrice: number;
         requiredMargin: number;
@@ -92,6 +95,7 @@ export declare class TradingController {
             lots: number;
             stopLoss: number | null;
             takeProfit: number | null;
+            productType: string;
             accountId: string;
             swap: number;
             commission: number;
@@ -119,6 +123,7 @@ export declare class TradingController {
                 lots: number;
                 stopLoss: number | null;
                 takeProfit: number | null;
+                productType: string;
                 accountId: string;
                 swap: number;
                 commission: number;
@@ -146,10 +151,11 @@ export declare class TradingController {
             createdAt: Date;
             updatedAt: Date;
             type: string;
+            status: string;
             lots: number;
             stopLoss: number | null;
             takeProfit: number | null;
-            status: string;
+            productType: string;
             accountId: string;
             entryPrice: number;
             currentPrice: number;
@@ -168,11 +174,12 @@ export declare class TradingController {
         createdAt: Date;
         updatedAt: Date;
         type: string;
+        status: string;
         lots: number;
         targetPrice: number | null;
         stopLoss: number | null;
         takeProfit: number | null;
-        status: string;
+        productType: string;
         accountId: string;
     }[]>;
     cancelOrder(req: any, orderId: string): Promise<{
@@ -186,6 +193,7 @@ export declare class TradingController {
         lots: number;
         stopLoss: number | null;
         takeProfit: number | null;
+        productType: string;
         accountId: string;
         swap: number;
         commission: number;

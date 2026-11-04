@@ -30,7 +30,7 @@ export class WalletService {
     });
 
     const balanceBefore = account.balance;
-    const balanceAfter = 10000.0;
+    const balanceAfter = 100000.0; // ₹1,00,000 demo capital
     const diff = balanceAfter - balanceBefore;
 
     const [updatedAccount, ledger] = await this.prisma.$transaction([
@@ -51,7 +51,7 @@ export class WalletService {
           amount: diff,
           balanceBefore,
           balanceAfter,
-          note: 'User initiated reset of virtual demo balance to $10,000.00',
+          note: 'User initiated reset of virtual demo balance to ₹1,00,000.00',
         },
       }),
     ]);
@@ -61,13 +61,13 @@ export class WalletService {
     return {
       success: true,
       account: updatedAccount,
-      message: 'Demo balance successfully reset to $10,000.00',
+      message: 'Demo balance successfully reset to ₹1,00,000.00',
     };
   }
 
   async depositVirtualFunds(userId: string, amount: number) {
-    if (amount <= 0 || amount > 100000) {
-      throw new BadRequestException('Deposit amount must be between $1 and $100,000');
+    if (amount <= 0 || amount > 500000) {
+      throw new BadRequestException('Deposit amount must be between ₹1,000 and ₹5,00,000');
     }
 
     const account = await this.prisma.account.findUnique({
@@ -97,7 +97,7 @@ export class WalletService {
           amount,
           balanceBefore,
           balanceAfter,
-          note: `Virtual demo deposit of $${amount.toLocaleString()}`,
+          note: `Virtual demo deposit of ₹${amount.toLocaleString('en-IN')}`,
         },
       }),
     ]);
@@ -107,7 +107,8 @@ export class WalletService {
     return {
       success: true,
       account: updatedAccount,
-      message: `$${amount.toLocaleString()} virtual demo funds added successfully`,
+      ledger,
+      message: `Successfully added ₹${amount.toLocaleString('en-IN')} demo capital`,
     };
   }
 
@@ -116,7 +117,7 @@ export class WalletService {
       where: { userId },
     });
 
-    if (!account) return [];
+    if (!account) throw new NotFoundException('Account not found');
 
     return this.prisma.accountLedger.findMany({
       where: { accountId: account.id },

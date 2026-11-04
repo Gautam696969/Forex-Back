@@ -14,9 +14,17 @@ async function bootstrap() {
         transform: true,
         forbidNonWhitelisted: false,
     }));
-    const port = process.env.PORT || 4000;
-    await app.listen(port);
-    console.log(`🚀 4xTrade Forex Backend is running on: http://localhost:${port}`);
+    const port = Number(process.env.PORT) || 4000;
+    try {
+        await app.listen(port);
+        console.log(`🚀 FourX Backend is running on: http://localhost:${port}`);
+    }
+    catch (err) {
+        if (err?.code === 'EADDRINUSE') {
+            console.error(`⚠️  Port ${port} is already in use. Run 'fuser -k ${port}/tcp' to release the port.`);
+        }
+        throw err;
+    }
 }
 await bootstrap();
 //# sourceMappingURL=main.js.map

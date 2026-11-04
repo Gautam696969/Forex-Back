@@ -18,6 +18,8 @@ import { ForexEngineService, PairTick } from './forex-engine.service.js';
     origin: '*',
     credentials: true,
   },
+  pingInterval: 10000,
+  pingTimeout: 5000,
 })
 export class MarketGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -45,7 +47,7 @@ export class MarketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   handleDisconnect(client: Socket) {
-    // client disconnected
+    // Client disconnected
   }
 
   @SubscribeMessage('join_account')
@@ -60,12 +62,12 @@ export class MarketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   @SubscribeMessage('subscribe_symbol')
-  handleSubscribeSymbol(
+  async handleSubscribeSymbol(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { symbol: string; timeframe?: string },
   ) {
     if (data?.symbol) {
-      const history = this.forexEngine.getCandleHistory(data.symbol, data.timeframe || '1m');
+      const history = await this.forexEngine.getCandleHistory(data.symbol, data.timeframe || '1m');
       client.emit('market:history', { symbol: data.symbol, history });
     }
   }
