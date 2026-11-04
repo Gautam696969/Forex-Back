@@ -4,10 +4,11 @@ import { UpstoxBrokerService } from './upstox-broker.service.js';
 import { NseIpoService } from './nse-ipo.service.js';
 import { MarketGateway } from './market.gateway.js';
 import { MarketController } from './market.controller.js';
+import { ApiController } from './api.controller.js';
 import { PrismaService } from '../prisma.service.js';
 
 @Module({
-  controllers: [MarketController],
+  controllers: [MarketController, ApiController],
   providers: [ForexEngineService, UpstoxBrokerService, NseIpoService, MarketGateway, PrismaService],
   exports: [ForexEngineService, UpstoxBrokerService, NseIpoService, MarketGateway],
 })
