@@ -127,10 +127,11 @@ export declare class MarketController {
     }[]>;
     getHistory(symbol: string, timeframe?: string, res?: any): Promise<{
         symbol: string;
+        interval: string;
         timeframe: string;
         candles: import("./upstox-broker.service.js").CandleBar[];
         lastUpdated: string;
-        error?: string;
+        lastCandle?: import("./upstox-broker.service.js").CandleBar;
     }>;
     getQuotes(res: any): import("./forex-engine.service.js").PairTick[];
     getMutualFunds(category?: string): Promise<{
@@ -218,11 +219,11 @@ export declare class MarketController {
             fundManager: string | null;
         };
     } & {
+        status: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
-        status: string;
         fundId: string;
         monthlyAmount: number;
         frequency: string;
@@ -264,11 +265,11 @@ export declare class MarketController {
                 fundManager: string | null;
             };
         } & {
+            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             userId: string;
-            status: string;
             fundId: string;
             monthlyAmount: number;
             frequency: string;
@@ -309,11 +310,11 @@ export declare class MarketController {
                 fundManager: string | null;
             };
         } & {
+            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             userId: string;
-            status: string;
             fundId: string;
             monthlyAmount: number;
             frequency: string;
@@ -333,12 +334,12 @@ export declare class MarketController {
     }>;
     getIpoDetail(id: string): Promise<import("./nse-ipo.service.js").IpoItem | {
         symbol: string;
+        status: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         category: string;
         about: string | null;
-        status: string;
         companyName: string;
         priceBand: string;
         minPrice: number;
@@ -360,12 +361,12 @@ export declare class MarketController {
         application: {
             ipo: {
                 symbol: string;
+                status: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 category: string;
                 about: string | null;
-                status: string;
                 companyName: string;
                 priceBand: string;
                 minPrice: number;
@@ -379,9 +380,9 @@ export declare class MarketController {
                 subscriptionRate: number;
             };
         } & {
+            status: string;
             id: string;
             userId: string;
-            status: string;
             lots: number;
             shares: number;
             bidPrice: number;
@@ -395,12 +396,12 @@ export declare class MarketController {
     getUserIpoApplications(req: any): Promise<({
         ipo: {
             symbol: string;
+            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             category: string;
             about: string | null;
-            status: string;
             companyName: string;
             priceBand: string;
             minPrice: number;
@@ -414,9 +415,9 @@ export declare class MarketController {
             subscriptionRate: number;
         };
     } & {
+        status: string;
         id: string;
         userId: string;
-        status: string;
         lots: number;
         shares: number;
         bidPrice: number;

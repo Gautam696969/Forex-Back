@@ -7,11 +7,11 @@ export declare class TradingController {
         success: boolean;
         order: {
             symbol: string;
+            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             type: string;
-            status: string;
             lots: number;
             targetPrice: number | null;
             stopLoss: number | null;
@@ -26,11 +26,11 @@ export declare class TradingController {
         success: boolean;
         position: {
             symbol: string;
+            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             type: string;
-            status: string;
             lots: number;
             stopLoss: number | null;
             takeProfit: number | null;
@@ -48,8 +48,6 @@ export declare class TradingController {
         };
         account: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             accountNumber: string;
             balance: number;
             equity: number;
@@ -59,6 +57,8 @@ export declare class TradingController {
             currency: string;
             leverage: number;
             isDemo: boolean;
+            createdAt: Date;
+            updatedAt: Date;
             userId: string;
         };
         message: string;
@@ -69,11 +69,11 @@ export declare class TradingController {
         unrealizedPnl: number;
         unrealizedPips: number;
         symbol: string;
+        status: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         type: string;
-        status: string;
         lots: number;
         stopLoss: number | null;
         takeProfit: number | null;
@@ -147,11 +147,11 @@ export declare class TradingController {
         success: boolean;
         position: {
             symbol: string;
+            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             type: string;
-            status: string;
             lots: number;
             stopLoss: number | null;
             takeProfit: number | null;
@@ -170,11 +170,11 @@ export declare class TradingController {
     }>;
     getPendingOrders(req: any): Promise<{
         symbol: string;
+        status: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         type: string;
-        status: string;
         lots: number;
         targetPrice: number | null;
         stopLoss: number | null;
@@ -214,13 +214,13 @@ export declare class TradingController {
             marginLevel: number;
             totalUnrealizedPnl: number;
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             accountNumber: string;
             balance: number;
             currency: string;
             leverage: number;
             isDemo: boolean;
+            createdAt: Date;
+            updatedAt: Date;
             userId: string;
         };
         stats: {

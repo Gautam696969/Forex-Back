@@ -1,5 +1,11 @@
 import { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { EventEmitter } from 'events';
+import { CentralApiService } from './central-api.service.js';
+export declare const YAHOO_SYMBOL_MAP: Record<string, string>;
+export declare const YAHOO_INTERVAL_MAP: Record<string, {
+    interval: string;
+    range: string;
+}>;
 export interface CandleBar {
     time: number;
     open: number;
@@ -71,6 +77,7 @@ export interface BrokerHealthInfo {
 }
 export declare const INSTRUMENT_MASTER: Record<string, InstrumentInfo>;
 export declare class UpstoxBrokerService extends EventEmitter implements OnModuleInit, OnModuleDestroy {
+    private centralApi;
     private readonly logger;
     private quotes;
     private candleCache;
@@ -90,7 +97,7 @@ export declare class UpstoxBrokerService extends EventEmitter implements OnModul
     private tokenValid;
     private tokenStatusMessage;
     private readonly backoffSchedule;
-    constructor();
+    constructor(centralApi: CentralApiService);
     onModuleInit(): Promise<void>;
     onModuleDestroy(): void;
     private stopAllTimers;
@@ -105,17 +112,20 @@ export declare class UpstoxBrokerService extends EventEmitter implements OnModul
     getInstrument(symbol: string): InstrumentInfo | null;
     getQuote(symbol: string): LiveQuote | null;
     getAllQuotes(): LiveQuote[];
-    getCandles(symbol: string, timeframe?: string): Promise<{
+    getCandles(symbol?: string, timeframe?: string): Promise<{
         symbol: string;
+        interval: string;
         timeframe: string;
         candles: CandleBar[];
         lastUpdated: string;
-        error?: string;
+        lastCandle?: CandleBar;
     }>;
+    fetchCandlesFromYahoo(inst: InstrumentInfo, normTf: string): Promise<CandleBar[]>;
     private fetchCandlesFromUpstox;
     private parseAndSortCandles;
     private aggregateCandles;
     refreshQuotes(): Promise<void>;
+    syncQuotesFromYahoo(): Promise<LiveQuote[]>;
     private startStaleFeedWatchdog;
     private startStreamingOrPolling;
     private initUpstoxWebSocket;

@@ -39,7 +39,7 @@ export class AdminService {
 
   async getAllUsers() {
     const users = await this.prisma.user.findMany({
-      orderBy: { createdAt: 'desc' },
+      orderBy: { created_at: 'desc' },
       include: {
         account: {
           include: {
@@ -59,10 +59,10 @@ export class AdminService {
 
       return {
         id: u.id,
-        name: u.name,
+        name: u.full_name,
         email: u.email,
         role: u.role,
-        createdAt: u.createdAt,
+        createdAt: u.created_at,
         accountNumber: u.account?.accountNumber,
         balance: u.account?.balance,
         equity: u.account?.equity,

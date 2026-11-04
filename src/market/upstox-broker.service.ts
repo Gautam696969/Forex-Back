@@ -1,6 +1,50 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { EventEmitter } from 'events';
 import WebSocket from 'ws';
+import { CentralApiService } from './central-api.service.js';
+
+export const YAHOO_SYMBOL_MAP: Record<string, string> = {
+  'NIFTY 50': '^NSEI',
+  'SENSEX': '^BSESN',
+  'BANK NIFTY': '^NSEBANK',
+  'NIFTY IT': '^CNXIT',
+  'RELIANCE': 'RELIANCE.NS',
+  'TCS': 'TCS.NS',
+  'HDFCBANK': 'HDFCBANK.NS',
+  'INFY': 'INFY.NS',
+  'ICICIBANK': 'ICICIBANK.NS',
+  'TATAMOTORS': 'TATAMOTORS.NS',
+  'TATASTEEL': 'TATASTEEL.NS',
+  'BHARTIARTL': 'BHARTIARTL.NS',
+  'SBIN': 'SBIN.NS',
+  'ITC': 'ITC.NS',
+  'LT': 'LT.NS',
+  'SUNPHARMA': 'SUNPHARMA.NS',
+  'MARUTI': 'MARUTI.NS',
+  'TATAPOWER': 'TATAPOWER.NS',
+  'ZOMATO': 'ZOMATO.NS',
+  'WIPRO': 'WIPRO.NS',
+  'HINDUNILVR': 'HINDUNILVR.NS',
+  'BAJFINANCE': 'BAJFINANCE.NS',
+  'ADANIENT': 'ADANIENT.NS',
+  'KOTAKBANK': 'KOTAKBANK.NS',
+  'GOLD24K': 'GC=F',
+  'GOLD22K': 'GC=F',
+  'SILVER1KG': 'SI=F',
+  'CRUDEOIL': 'CL=F',
+  'NATURALGAS': 'NG=F',
+};
+
+export const YAHOO_INTERVAL_MAP: Record<string, { interval: string; range: string }> = {
+  '1m': { interval: '1m', range: '1d' },
+  '5m': { interval: '5m', range: '5d' },
+  '15m': { interval: '15m', range: '5d' },
+  '30m': { interval: '30m', range: '1mo' },
+  '1h': { interval: '60m', range: '1mo' },
+  '1d': { interval: '1d', range: '1y' },
+  '1wk': { interval: '1wk', range: '5y' },
+  '1mo': { interval: '1mo', range: '10y' },
+};
 
 export interface CandleBar {
   time: number; // Unix timestamp in seconds
@@ -462,16 +506,26 @@ export class UpstoxBrokerService extends EventEmitter implements OnModuleInit, O
   // Exponential backoff reconnect intervals: 1s, 2s, 5s, 10s, max 30s
   private readonly backoffSchedule = [1000, 2000, 5000, 10000, 30000];
 
-  constructor() {
+  constructor(private centralApi: CentralApiService) {
     super();
     this.setMaxListeners(100);
   }
 
   async onModuleInit() {
-    this.logger.log('Starting Upstox Broker Feed Engine (Broker-Grade Indian Market Data)...');
-    await this.refreshQuotes();
-    this.startStreamingOrPolling();
-    this.startStaleFeedWatchdog();
+    this.logger.log('Starting Broker Feed Engine (Broker-Grade Indian Market Data)...');
+    // Start quote synchronization asynchronously so app.listen() is immediate (<100ms)
+    (async () => {
+      try {
+        await this.refreshQuotes();
+      } catch (e) {
+        this.logger.warn(`Initial quote refresh had errors; checking Yahoo feed...`);
+      }
+      if (this.quotes.size === 0) {
+        await this.syncQuotesFromYahoo();
+      }
+      this.startStreamingOrPolling();
+      this.startStaleFeedWatchdog();
+    })().catch((err) => this.logger.error('Broker background init error: ' + err.message));
   }
 
   onModuleDestroy() {
@@ -596,60 +650,154 @@ export class UpstoxBrokerService extends EventEmitter implements OnModuleInit, O
     return Array.from(this.quotes.values());
   }
 
-  // Broker-Grade Historical / Intraday Candles
-  public async getCandles(symbol: string, timeframe: string = '1m'): Promise<{
+  // Broker-Grade Historical / Intraday Candles with strict validation and live fallback
+  public async getCandles(symbol: string = 'NIFTY 50', timeframe: string = '1m'): Promise<{
     symbol: string;
+    interval: string;
     timeframe: string;
     candles: CandleBar[];
     lastUpdated: string;
-    error?: string;
+    lastCandle?: CandleBar;
   }> {
+    const VALID_INTERVALS = ['1m', '5m', '15m', '30m', '1h', '1d', '1wk', '1mo'];
+    let normTf = (timeframe || '1m').trim();
+    if (normTf === '1D') normTf = '1d';
+    if (normTf === '1W' || normTf === '1w') normTf = '1wk';
+    if (normTf === '1M') normTf = '1mo';
+    if (normTf === '1H') normTf = '1h';
+    normTf = normTf.toLowerCase();
+    if (normTf === '1w') normTf = '1wk';
+    if (normTf === '1m' && (timeframe === '1M' || timeframe === '1mo')) normTf = '1mo';
+
+    // Strict Interval Validation
+    if (!VALID_INTERVALS.includes(normTf)) {
+      throw new Error(`Invalid candle interval: ${timeframe}. Allowed intervals: 1m, 5m, 15m, 30m, 1h, 1d, 1wk, 1mo`);
+    }
+
     const inst = this.getInstrument(symbol);
     const nowIST = this.formatIST(Date.now());
 
     if (!inst) {
-      return {
-        symbol,
-        timeframe,
-        candles: [],
-        lastUpdated: nowIST,
-        error: `Instrument '${symbol}' not mapped in Upstox broker master feed`,
-      };
+      throw new Error(`Instrument '${symbol}' not mapped in master feed`);
     }
 
-    const cacheKey = `${inst.symbol}:${timeframe}`;
+    const cacheKey = `${inst.symbol}:${normTf}`;
     const cached = this.candleCache.get(cacheKey);
-    const cacheTtl = ['1D', '1W', '1M'].includes(timeframe) ? 60000 : 2500;
-    if (cached && Date.now() - cached.timestamp < cacheTtl) {
+    const cacheTtl = ['1d', '1wk', '1mo'].includes(normTf) ? 60000 : 2500;
+    if (cached && Date.now() - cached.timestamp < cacheTtl && cached.candles.length > 0) {
       return {
         symbol: inst.symbol,
-        timeframe,
+        interval: normTf,
+        timeframe: normTf,
         candles: cached.candles,
         lastUpdated: nowIST,
+        lastCandle: cached.candles[cached.candles.length - 1],
       };
     }
 
+    let candles: CandleBar[] = [];
+
+    // 1. Try Upstox Intraday/Historical Feed first
     try {
-      const candles = await this.fetchCandlesFromUpstox(inst, timeframe);
-      if (candles && candles.length > 0) {
-        this.candleCache.set(cacheKey, { timestamp: Date.now(), candles });
-      }
-      return {
-        symbol: inst.symbol,
-        timeframe,
-        candles: candles || [],
-        lastUpdated: nowIST,
-      };
+      candles = await this.centralApi.execute(
+        {
+          apiName: 'candles.upstox',
+          url: `https://api.upstox.com/v2/historical-candle/${encodeURIComponent(inst.instrumentKey)}`,
+          isUpstream: true,
+        },
+        () => this.fetchCandlesFromUpstox(inst, normTf),
+      );
     } catch (err: any) {
-      this.logger.error(`[Broker API] Error fetching candles for ${inst.symbol} (${timeframe}): ${err?.message}`);
-      return {
-        symbol: inst.symbol,
-        timeframe,
-        candles: cached?.candles || [],
-        lastUpdated: nowIST,
-        error: 'Data temporarily unavailable from exchange feed',
-      };
+      this.logger.warn(`Upstox candle fetch for ${inst.symbol} (${normTf}) failed (${err?.message}); using Yahoo feed fallback`);
     }
+
+    // 2. Fallback to Yahoo Finance real-time chart feed
+    if (!candles || candles.length === 0) {
+      candles = await this.fetchCandlesFromYahoo(inst, normTf);
+    }
+
+    if (!candles || candles.length === 0) {
+      throw new Error(`Candle data unavailable for ${inst.symbol} (${normTf}) from exchange feeds`);
+    }
+
+    this.candleCache.set(cacheKey, { timestamp: Date.now(), candles });
+
+    return {
+      symbol: inst.symbol,
+      interval: normTf,
+      timeframe: normTf,
+      candles,
+      lastUpdated: nowIST,
+      lastCandle: candles[candles.length - 1],
+    };
+  }
+
+  public async fetchCandlesFromYahoo(inst: InstrumentInfo, normTf: string): Promise<CandleBar[]> {
+    const yahooTicker = YAHOO_SYMBOL_MAP[inst.symbol] || `${inst.symbol}.NS`;
+    const cfg = YAHOO_INTERVAL_MAP[normTf] || { interval: '1d', range: '1y' };
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooTicker)}?interval=${cfg.interval}&range=${cfg.range}`;
+
+    return this.centralApi.execute({ apiName: 'candles.yahoo', url, isUpstream: true }, async () => {
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      }
+
+      const data: any = await res.json();
+      const result = data.chart?.result?.[0];
+      if (!result) {
+        throw new Error(`No chart data returned by Yahoo for ${yahooTicker}`);
+      }
+
+      const timestamps = result.timestamp || [];
+      const quote = result.indicators?.quote?.[0] || {};
+      const bars: CandleBar[] = [];
+
+      for (let i = 0; i < timestamps.length; i++) {
+        const t = timestamps[i];
+        let o = quote.open?.[i];
+        let h = quote.high?.[i];
+        let l = quote.low?.[i];
+        let c = quote.close?.[i];
+        let v = quote.volume?.[i] || 0;
+
+        if (o == null || h == null || l == null || c == null || isNaN(o) || isNaN(c)) {
+          continue;
+        }
+
+        if (inst.symbol === 'GOLD22K') {
+          const ratio = 22 / 24;
+          o *= ratio;
+          h *= ratio;
+          l *= ratio;
+          c *= ratio;
+        }
+
+        bars.push({
+          time: t,
+          open: Number(o.toFixed(inst.digits)),
+          high: Number(h.toFixed(inst.digits)),
+          low: Number(l.toFixed(inst.digits)),
+          close: Number(c.toFixed(inst.digits)),
+          volume: v,
+          istDate: new Date(t * 1000).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false }) + ' IST',
+        });
+      }
+
+      if (bars.length === 0) {
+        throw new Error(`Zero valid candles parsed for ${inst.symbol} (${normTf})`);
+      }
+
+      return bars;
+    });
   }
 
   private async fetchCandlesFromUpstox(inst: InstrumentInfo, timeframe: string): Promise<CandleBar[]> {
@@ -932,7 +1080,90 @@ export class UpstoxBrokerService extends EventEmitter implements OnModuleInit, O
       this.lastRestSyncAt = nowMs;
       this.ticksReceivedTotal += updatedQuotes.length;
       this.emit('ticks', updatedQuotes);
+    } else {
+      await this.syncQuotesFromYahoo();
     }
+  }
+
+  public async syncQuotesFromYahoo(): Promise<LiveQuote[]> {
+    const updated: LiveQuote[] = [];
+    const entries = Object.values(INSTRUMENT_MASTER);
+    const nowMs = Date.now();
+    const istTime = this.formatIST(nowMs);
+
+    for (let i = 0; i < entries.length; i += 5) {
+      const chunk = entries.slice(i, i + 5);
+      await Promise.all(
+        chunk.map(async (inst) => {
+          try {
+            const yahooTicker = YAHOO_SYMBOL_MAP[inst.symbol] || `${inst.symbol}.NS`;
+            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooTicker)}?interval=1d&range=1d`;
+            const res = await fetch(url, {
+              headers: {
+                'User-Agent':
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              },
+              signal: AbortSignal.timeout(6000),
+            });
+
+            if (!res.ok) return;
+            const json: any = await res.json();
+            const meta = json.chart?.result?.[0]?.meta;
+            if (!meta || meta.regularMarketPrice == null) return;
+
+            let ltp = Number(meta.regularMarketPrice);
+            let prevClose = Number(meta.chartPreviousClose || ltp);
+            let high = Number(meta.regularMarketDayHigh || ltp);
+            let low = Number(meta.regularMarketDayLow || ltp);
+            let open = Number(meta.regularMarketPrice || ltp);
+            let volume = Number(meta.regularMarketVolume || 0);
+
+            if (inst.symbol === 'GOLD22K') {
+              const ratio = 22 / 24;
+              ltp *= ratio;
+              prevClose *= ratio;
+              high *= ratio;
+              low *= ratio;
+              open *= ratio;
+            }
+
+            const changeAmount = ltp - prevClose;
+            const changePct = prevClose > 0 ? (changeAmount / prevClose) * 100 : 0;
+            const spread = inst.defaultSpread;
+
+            const quote: LiveQuote = {
+              symbol: inst.symbol,
+              bid: Number(ltp.toFixed(inst.digits)),
+              ask: Number((ltp + spread).toFixed(inst.digits)),
+              digits: inst.digits,
+              change24h: Number(changePct.toFixed(2)),
+              changeAmount: Number(changeAmount.toFixed(inst.digits)),
+              high24h: Number(high.toFixed(inst.digits)),
+              low24h: Number(low.toFixed(inst.digits)),
+              open24h: Number(open.toFixed(inst.digits)),
+              close24h: Number(prevClose.toFixed(inst.digits)),
+              volume24h: volume,
+              timestamp: nowMs,
+              lastUpdatedIST: istTime,
+              category: inst.category,
+            };
+
+            this.quotes.set(inst.symbol, quote);
+            updated.push(quote);
+          } catch (e) {
+            // symbol level catch
+          }
+        }),
+      );
+    }
+
+    if (updated.length > 0) {
+      this.lastTickTimestamp = nowMs;
+      this.lastRestSyncAt = nowMs;
+      this.ticksReceivedTotal += updated.length;
+      this.emit('ticks', updated);
+    }
+    return updated;
   }
 
   // Stale Feed Watchdog: detects frozen feed if no tick is received for 15s during market hours

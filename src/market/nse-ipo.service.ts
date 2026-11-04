@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import https from 'https';
+import { CentralApiService } from './central-api.service.js';
 
 export interface IpoItem {
   id: string;
@@ -37,9 +38,14 @@ export class NseIpoService implements OnModuleInit, OnModuleDestroy {
   private refreshTimer: NodeJS.Timeout | null = null;
   private cookieJar: string = '';
 
+  constructor(private centralApi: CentralApiService) {}
+
   async onModuleInit() {
     this.logger.log('Initializing Real NSE IPO Service...');
-    await this.refreshIpos();
+    // Fetch in background so app.listen() is immediate (<100ms) and never causes ECONNREFUSED
+    this.refreshIpos().catch((err) =>
+      this.logger.warn('Initial IPO fetch deferred: ' + err.message),
+    );
     // Refresh every 10 minutes in the background
     this.refreshTimer = setInterval(() => {
       this.refreshIpos();
@@ -272,6 +278,9 @@ export class NseIpoService implements OnModuleInit, OnModuleDestroy {
       return this.cachedIpos;
     } catch (err: any) {
       this.logger.error(`Error refreshing IPOs from NSE: ${err?.message}`);
+      if (this.cachedIpos.length === 0) {
+        throw new Error(`Failed to fetch real IPO data from NSE: ${err?.message || 'Exchange feed unavailable'}`);
+      }
       return this.cachedIpos;
     } finally {
       this.isFetching = false;
@@ -331,79 +340,97 @@ export class NseIpoService implements OnModuleInit, OnModuleDestroy {
 
   // Handshake session cookie with NSE
   private async ensureNseCookies(): Promise<string> {
-    return new Promise((resolve) => {
-      const req = https.request(
-        {
-          hostname: 'www.nseindia.com',
-          path: '/',
-          method: 'GET',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-          },
-        },
-        (res) => {
-          const setCookies = res.headers['set-cookie'] || [];
-          if (setCookies.length > 0) {
-            this.cookieJar = setCookies.map((c) => c.split(';')[0]).join('; ');
-          }
-          res.on('data', () => {});
-          res.on('end', () => resolve(this.cookieJar));
-        },
-      );
-      req.on('error', () => resolve(this.cookieJar));
-      req.setTimeout(5000, () => {
-        req.destroy();
-        resolve(this.cookieJar);
-      });
-      req.end();
-    });
+    return this.centralApi.execute(
+      { apiName: 'ipo.cookies', url: 'https://www.nseindia.com/', isUpstream: true },
+      async () => {
+        return new Promise((resolve, reject) => {
+          const req = https.request(
+            {
+              hostname: 'www.nseindia.com',
+              path: '/',
+              method: 'GET',
+              headers: {
+                'User-Agent':
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+              },
+            },
+            (res) => {
+              const setCookies = res.headers['set-cookie'] || [];
+              if (setCookies.length > 0) {
+                this.cookieJar = setCookies.map((c) => c.split(';')[0]).join('; ');
+              }
+              res.on('data', () => {});
+              res.on('end', () => resolve(this.cookieJar));
+            },
+          );
+          req.on('error', reject);
+          req.setTimeout(8000, () => {
+            req.destroy();
+            reject(new Error('ETIMEDOUT: Timeout establishing NSE cookie handshake'));
+          });
+          req.end();
+        });
+      },
+    );
   }
 
   private async fetchNseJson(path: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const headers: Record<string, string> = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://www.nseindia.com/market-data/all-upcoming-issues-ipo',
-      };
-      if (this.cookieJar) {
-        headers['Cookie'] = this.cookieJar;
-      }
+    const subName = path.includes('current')
+      ? 'ipo.current'
+      : path.includes('upcoming')
+      ? 'ipo.upcoming'
+      : path.includes('past')
+      ? 'ipo.past'
+      : 'ipo.detail';
+    const url = `https://www.nseindia.com${path}`;
 
-      const req = https.request(
-        {
-          hostname: 'www.nseindia.com',
-          path,
-          method: 'GET',
-          headers,
-        },
-        (res) => {
-          let data = '';
-          res.on('data', (chunk) => (data += chunk));
-          res.on('end', () => {
-            if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-              try {
-                const parsed = JSON.parse(data);
-                resolve(parsed);
-              } catch (e) {
-                reject(new Error(`Failed to parse NSE JSON from ${path}`));
+    return this.centralApi.execute({ apiName: subName, url, isUpstream: true }, async () => {
+      return new Promise((resolve, reject) => {
+        const headers: Record<string, string> = {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Referer': 'https://www.nseindia.com/market-data/all-upcoming-issues-ipo',
+        };
+        if (this.cookieJar) {
+          headers['Cookie'] = this.cookieJar;
+        }
+
+        const req = https.request(
+          {
+            hostname: 'www.nseindia.com',
+            path,
+            method: 'GET',
+            headers,
+          },
+          (res) => {
+            let data = '';
+            res.on('data', (chunk) => (data += chunk));
+            res.on('end', () => {
+              if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                try {
+                  const parsed = JSON.parse(data);
+                  resolve(parsed);
+                } catch (e) {
+                  reject(new Error(`Failed to parse NSE JSON from ${path}`));
+                }
+              } else {
+                reject(new Error(`NSE endpoint ${path} returned status HTTP ${res.statusCode}`));
               }
-            } else {
-              reject(new Error(`NSE endpoint ${path} returned status ${res.statusCode}`));
-            }
-          });
-        },
-      );
+            });
+          },
+        );
 
-      req.on('error', reject);
-      req.setTimeout(8000, () => {
-        req.destroy();
-        reject(new Error(`Timeout fetching ${path} from NSE`));
+        req.on('error', reject);
+        req.setTimeout(8000, () => {
+          req.destroy();
+          reject(new Error(`ETIMEDOUT: Timeout fetching ${path} from NSE`));
+        });
+        req.end();
       });
-      req.end();
     });
   }
 }

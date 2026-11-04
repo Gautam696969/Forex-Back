@@ -8,8 +8,6 @@ export declare class WalletService {
         success: boolean;
         account: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             accountNumber: string;
             balance: number;
             equity: number;
@@ -19,6 +17,8 @@ export declare class WalletService {
             currency: string;
             leverage: number;
             isDemo: boolean;
+            createdAt: Date;
+            updatedAt: Date;
             userId: string;
         };
         message: string;
@@ -27,8 +27,6 @@ export declare class WalletService {
         success: boolean;
         account: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             accountNumber: string;
             balance: number;
             equity: number;
@@ -38,6 +36,8 @@ export declare class WalletService {
             currency: string;
             leverage: number;
             isDemo: boolean;
+            createdAt: Date;
+            updatedAt: Date;
             userId: string;
         };
         ledger: {

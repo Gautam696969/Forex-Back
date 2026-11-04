@@ -30,11 +30,14 @@ async function main() {
   const adminUser = await prisma.user.create({
     data: {
       email: 'admin@4xtrade.demo',
-      password: adminPassword,
-      name: 'System Admin',
-      phone: '+91 98765 43210',
+      mobile: '9876543210',
+      password_hash: adminPassword,
+      full_name: 'System Admin',
       pan: 'ABCDE1234F',
       role: 'ADMIN',
+      is_verified: true,
+      kyc_status: 'verified',
+      demo_balance: 500000.0,
       account: {
         create: {
           accountNumber: 'ADMIN-100001',
@@ -63,11 +66,14 @@ async function main() {
   const demoTrader = await prisma.user.create({
     data: {
       email: 'trader@4xtrade.demo',
-      password: traderPassword,
-      name: 'Alex Sharma',
-      phone: '+91 91234 56789',
+      mobile: '9123456789',
+      password_hash: traderPassword,
+      full_name: 'Alex Sharma',
       pan: 'BKMPL9876Z',
       role: 'USER',
+      is_verified: true,
+      kyc_status: 'verified',
+      demo_balance: 100000.0,
       account: {
         create: {
           accountNumber: 'DEMO-842019',

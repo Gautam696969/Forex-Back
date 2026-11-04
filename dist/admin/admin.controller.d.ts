@@ -32,8 +32,6 @@ export declare class AdminController {
         success: boolean;
         account: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             accountNumber: string;
             balance: number;
             equity: number;
@@ -43,6 +41,8 @@ export declare class AdminController {
             currency: string;
             leverage: number;
             isDemo: boolean;
+            createdAt: Date;
+            updatedAt: Date;
             userId: string;
         };
         message: string;
@@ -53,8 +53,6 @@ export declare class AdminController {
         success: boolean;
         account: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             accountNumber: string;
             balance: number;
             equity: number;
@@ -64,6 +62,8 @@ export declare class AdminController {
             currency: string;
             leverage: number;
             isDemo: boolean;
+            createdAt: Date;
+            updatedAt: Date;
             userId: string;
         };
         message: string;
@@ -114,11 +114,12 @@ export declare class AdminController {
     }>;
     getAuditLogs(): Promise<({
         targetUser: {
-            id: string;
             email: string;
-            name: string;
+            id: string;
+            name: never;
         } | null;
     } & {
+        reason: string;
         id: string;
         createdAt: Date;
         adminId: string;
@@ -126,18 +127,15 @@ export declare class AdminController {
         action: string;
         targetUserId: string | null;
         details: string;
-        reason: string;
     })[]>;
     getAllPositions(): Promise<({
         account: {
             user: {
                 email: string;
-                name: string;
+                name: never;
             };
         } & {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             accountNumber: string;
             balance: number;
             equity: number;
@@ -147,15 +145,17 @@ export declare class AdminController {
             currency: string;
             leverage: number;
             isDemo: boolean;
+            createdAt: Date;
+            updatedAt: Date;
             userId: string;
         };
     } & {
         symbol: string;
+        status: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         type: string;
-        status: string;
         lots: number;
         stopLoss: number | null;
         takeProfit: number | null;

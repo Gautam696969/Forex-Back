@@ -32,7 +32,12 @@ let JwtStrategy = class JwtStrategy extends PassportStrategy(Strategy) {
         return {
             id: user.id,
             email: user.email,
-            name: user.name,
+            name: user.full_name,
+            fullName: user.full_name,
+            mobile: user.mobile,
+            isVerified: user.is_verified,
+            kycStatus: user.kyc_status,
+            demoBalance: user.demo_balance,
             role: user.role,
             account: user.account,
         };

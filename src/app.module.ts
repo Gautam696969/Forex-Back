@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AppController } from './app.controller.js';
 import { PrismaService } from './prisma.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { MarketModule } from './market/market.module.js';
@@ -16,6 +17,7 @@ import { AdminModule } from './admin/admin.module.js';
     WalletModule,
     AdminModule,
   ],
+  controllers: [AppController],
   providers: [PrismaService],
   exports: [PrismaService],
 })

@@ -6,6 +6,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AppController } from './app.controller.js';
 import { PrismaService } from './prisma.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { MarketModule } from './market/market.module.js';
@@ -24,6 +25,7 @@ AppModule = __decorate([
             WalletModule,
             AdminModule,
         ],
+        controllers: [AppController],
         providers: [PrismaService],
         exports: [PrismaService],
     })

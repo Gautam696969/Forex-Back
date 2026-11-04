@@ -1,6 +1,30 @@
-import { AppService } from './app.service.js';
 export declare class AppController {
-    private readonly appService;
-    constructor(appService: AppService);
-    getHello(): string;
+    getRoot(): {
+        status: string;
+        service: string;
+        version: string;
+        market: string;
+        timestampIST: string;
+        endpoints: {
+            indices: string;
+            candles: string;
+            auth: {
+                register: string;
+                login: string;
+                me: string;
+                sendOtp: string;
+                verifyOtp: string;
+                refresh: string;
+                logout: string;
+            };
+            market: {
+                pairs: string;
+                quotes: string;
+                status: string;
+                ipos: string;
+                mutualFunds: string;
+                commodities: string;
+            };
+        };
+    };
 }

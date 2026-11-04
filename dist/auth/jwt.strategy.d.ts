@@ -14,11 +14,14 @@ export declare class JwtStrategy extends JwtStrategy_base {
         id: string;
         email: string;
         name: string;
+        fullName: string;
+        mobile: string;
+        isVerified: boolean;
+        kycStatus: string;
+        demoBalance: number;
         role: string;
         account: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             accountNumber: string;
             balance: number;
             equity: number;
@@ -28,6 +31,8 @@ export declare class JwtStrategy extends JwtStrategy_base {
             currency: string;
             leverage: number;
             isDemo: boolean;
+            createdAt: Date;
+            updatedAt: Date;
             userId: string;
         } | null;
     }>;

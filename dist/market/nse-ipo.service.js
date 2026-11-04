@@ -4,19 +4,27 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 var NseIpoService_1;
 import { Injectable, Logger } from '@nestjs/common';
 import https from 'https';
+import { CentralApiService } from './central-api.service.js';
 let NseIpoService = NseIpoService_1 = class NseIpoService {
+    centralApi;
     logger = new Logger(NseIpoService_1.name);
     cachedIpos = [];
     lastFetchedAt = 0;
     isFetching = false;
     refreshTimer = null;
     cookieJar = '';
+    constructor(centralApi) {
+        this.centralApi = centralApi;
+    }
     async onModuleInit() {
         this.logger.log('Initializing Real NSE IPO Service...');
-        await this.refreshIpos();
+        this.refreshIpos().catch((err) => this.logger.warn('Initial IPO fetch deferred: ' + err.message));
         this.refreshTimer = setInterval(() => {
             this.refreshIpos();
         }, 10 * 60 * 1000);
@@ -216,6 +224,9 @@ let NseIpoService = NseIpoService_1 = class NseIpoService {
         }
         catch (err) {
             this.logger.error(`Error refreshing IPOs from NSE: ${err?.message}`);
+            if (this.cachedIpos.length === 0) {
+                throw new Error(`Failed to fetch real IPO data from NSE: ${err?.message || 'Exchange feed unavailable'}`);
+            }
             return this.cachedIpos;
         }
         finally {
@@ -274,77 +285,90 @@ let NseIpoService = NseIpoService_1 = class NseIpoService {
         }
     }
     async ensureNseCookies() {
-        return new Promise((resolve) => {
-            const req = https.request({
-                hostname: 'www.nseindia.com',
-                path: '/',
-                method: 'GET',
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                },
-            }, (res) => {
-                const setCookies = res.headers['set-cookie'] || [];
-                if (setCookies.length > 0) {
-                    this.cookieJar = setCookies.map((c) => c.split(';')[0]).join('; ');
-                }
-                res.on('data', () => { });
-                res.on('end', () => resolve(this.cookieJar));
+        return this.centralApi.execute({ apiName: 'ipo.cookies', url: 'https://www.nseindia.com/', isUpstream: true }, async () => {
+            return new Promise((resolve, reject) => {
+                const req = https.request({
+                    hostname: 'www.nseindia.com',
+                    path: '/',
+                    method: 'GET',
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                    },
+                }, (res) => {
+                    const setCookies = res.headers['set-cookie'] || [];
+                    if (setCookies.length > 0) {
+                        this.cookieJar = setCookies.map((c) => c.split(';')[0]).join('; ');
+                    }
+                    res.on('data', () => { });
+                    res.on('end', () => resolve(this.cookieJar));
+                });
+                req.on('error', reject);
+                req.setTimeout(8000, () => {
+                    req.destroy();
+                    reject(new Error('ETIMEDOUT: Timeout establishing NSE cookie handshake'));
+                });
+                req.end();
             });
-            req.on('error', () => resolve(this.cookieJar));
-            req.setTimeout(5000, () => {
-                req.destroy();
-                resolve(this.cookieJar);
-            });
-            req.end();
         });
     }
     async fetchNseJson(path) {
-        return new Promise((resolve, reject) => {
-            const headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': 'https://www.nseindia.com/market-data/all-upcoming-issues-ipo',
-            };
-            if (this.cookieJar) {
-                headers['Cookie'] = this.cookieJar;
-            }
-            const req = https.request({
-                hostname: 'www.nseindia.com',
-                path,
-                method: 'GET',
-                headers,
-            }, (res) => {
-                let data = '';
-                res.on('data', (chunk) => (data += chunk));
-                res.on('end', () => {
-                    if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                        try {
-                            const parsed = JSON.parse(data);
-                            resolve(parsed);
+        const subName = path.includes('current')
+            ? 'ipo.current'
+            : path.includes('upcoming')
+                ? 'ipo.upcoming'
+                : path.includes('past')
+                    ? 'ipo.past'
+                    : 'ipo.detail';
+        const url = `https://www.nseindia.com${path}`;
+        return this.centralApi.execute({ apiName: subName, url, isUpstream: true }, async () => {
+            return new Promise((resolve, reject) => {
+                const headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'application/json, text/plain, */*',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Referer': 'https://www.nseindia.com/market-data/all-upcoming-issues-ipo',
+                };
+                if (this.cookieJar) {
+                    headers['Cookie'] = this.cookieJar;
+                }
+                const req = https.request({
+                    hostname: 'www.nseindia.com',
+                    path,
+                    method: 'GET',
+                    headers,
+                }, (res) => {
+                    let data = '';
+                    res.on('data', (chunk) => (data += chunk));
+                    res.on('end', () => {
+                        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                            try {
+                                const parsed = JSON.parse(data);
+                                resolve(parsed);
+                            }
+                            catch (e) {
+                                reject(new Error(`Failed to parse NSE JSON from ${path}`));
+                            }
                         }
-                        catch (e) {
-                            reject(new Error(`Failed to parse NSE JSON from ${path}`));
+                        else {
+                            reject(new Error(`NSE endpoint ${path} returned status HTTP ${res.statusCode}`));
                         }
-                    }
-                    else {
-                        reject(new Error(`NSE endpoint ${path} returned status ${res.statusCode}`));
-                    }
+                    });
                 });
+                req.on('error', reject);
+                req.setTimeout(8000, () => {
+                    req.destroy();
+                    reject(new Error(`ETIMEDOUT: Timeout fetching ${path} from NSE`));
+                });
+                req.end();
             });
-            req.on('error', reject);
-            req.setTimeout(8000, () => {
-                req.destroy();
-                reject(new Error(`Timeout fetching ${path} from NSE`));
-            });
-            req.end();
         });
     }
 };
 NseIpoService = NseIpoService_1 = __decorate([
-    Injectable()
+    Injectable(),
+    __metadata("design:paramtypes", [CentralApiService])
 ], NseIpoService);
 export { NseIpoService };
 //# sourceMappingURL=nse-ipo.service.js.map
