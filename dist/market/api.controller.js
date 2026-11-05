@@ -308,6 +308,21 @@ let ApiController = class ApiController {
             return res.status(500).json({ ok: false, api: 'candles', error: reason });
         }
     }
+    async getChart(symbol = 'NIFTY 50', range = '1D', req, res) {
+        try {
+            return await this.centralApi.wrapRoute(res, 'chart', req?.originalUrl || `/api/chart?symbol=${symbol}&range=${range}`, async () => {
+                return this.upstoxBroker.getChartData(symbol, range);
+            });
+        }
+        catch (err) {
+            const timeIST = this.centralApi.getISTString();
+            const reason = err?.message || String(err);
+            console.error(`\x1b[31m[API FAILED] api=chart ${timeIST} reason=${reason}\x1b[0m`);
+            if (err?.stack)
+                console.error(err.stack);
+            return res.status(500).json({ ok: false, api: 'chart', error: reason });
+        }
+    }
     async getStatus(req, res) {
         try {
             return await this.centralApi.wrapRoute(res, 'status', req?.originalUrl || '/api/status', async () => {
@@ -414,6 +429,16 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String, Object, Object]),
     __metadata("design:returntype", Promise)
 ], ApiController.prototype, "getCandles", null);
+__decorate([
+    Get('chart'),
+    __param(0, Query('symbol')),
+    __param(1, Query('range')),
+    __param(2, Req()),
+    __param(3, Res()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object, Object]),
+    __metadata("design:returntype", Promise)
+], ApiController.prototype, "getChart", null);
 __decorate([
     Get('status'),
     __param(0, Req()),

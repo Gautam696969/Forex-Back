@@ -332,6 +332,31 @@ export class ApiController implements OnModuleInit {
     }
   }
 
+  @Get('chart')
+  async getChart(
+    @Query('symbol') symbol: string = 'NIFTY 50',
+    @Query('range') range: string = '1D',
+    @Req() req: any,
+    @Res() res: any,
+  ) {
+    try {
+      return await this.centralApi.wrapRoute(
+        res,
+        'chart',
+        req?.originalUrl || `/api/chart?symbol=${symbol}&range=${range}`,
+        async () => {
+          return this.upstoxBroker.getChartData(symbol, range);
+        },
+      );
+    } catch (err: any) {
+      const timeIST = this.centralApi.getISTString();
+      const reason = err?.message || String(err);
+      console.error(`\x1b[31m[API FAILED] api=chart ${timeIST} reason=${reason}\x1b[0m`);
+      if (err?.stack) console.error(err.stack);
+      return res.status(500).json({ ok: false, api: 'chart', error: reason });
+    }
+  }
+
   @Get('status')
   async getStatus(@Req() req: any, @Res() res: any) {
     try {

@@ -67,6 +67,7 @@ export declare class ApiController implements OnModuleInit {
     getQuotes(req: any, res: any): Promise<any>;
     getPairs(category: string, req: any, res: any): Promise<any>;
     getCandles(symbol?: string, interval?: string, timeframe?: string, req?: any, res?: any): Promise<any>;
+    getChart(symbol: string | undefined, range: string | undefined, req: any, res: any): Promise<any>;
     getStatus(req: any, res: any): Promise<any>;
     getIpo(status: string, req: any, res: any): Promise<any>;
     getIposAlias(status: string, req: any, res: any): Promise<any>;

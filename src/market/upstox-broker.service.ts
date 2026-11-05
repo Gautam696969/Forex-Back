@@ -631,15 +631,195 @@ export class UpstoxBrokerService extends EventEmitter implements OnModuleInit, O
     };
   }
 
+  private chartCache = new Map<string, { timestamp: number; data: any }>();
+
   public getInstrument(symbol: string): InstrumentInfo | null {
+    if (!symbol) return null;
+    const clean = symbol.trim().toUpperCase().replace(/[-_]/g, ' ');
+    if (INSTRUMENT_MASTER[clean]) return INSTRUMENT_MASTER[clean];
     const upper = symbol.toUpperCase().trim();
     if (INSTRUMENT_MASTER[upper]) return INSTRUMENT_MASTER[upper];
     for (const [key, val] of Object.entries(INSTRUMENT_MASTER)) {
-      if (key.includes(upper) || val.instrumentKey.includes(upper)) {
+      if (
+        key === clean ||
+        key.includes(clean) ||
+        key.includes(upper) ||
+        val.instrumentKey.includes(upper) ||
+        val.instrumentKey.includes(clean)
+      ) {
         return val;
       }
     }
     return null;
+  }
+
+  public async getChartData(symbol: string = 'NIFTY 50', range: string = '1D') {
+    const VALID_RANGES = ['1D', '1W', '1M', '3M', '6M', '1Y', '5Y', 'ALL'];
+    const normRange = (range || '1D').trim().toUpperCase();
+    if (!VALID_RANGES.includes(normRange)) {
+      throw new Error(`Invalid range: ${range}. Allowed ranges: 1D, 1W, 1M, 3M, 6M, 1Y, 5Y, All`);
+    }
+
+    const inst = this.getInstrument(symbol);
+    if (!inst) {
+      throw new Error(`Instrument '${symbol}' not mapped in master feed`);
+    }
+
+    const cacheKey = `${inst.symbol}:${normRange}`;
+    const cached = this.chartCache.get(cacheKey);
+    const ttl = normRange === '1D' ? 4000 : 30000;
+    if (cached && Date.now() - cached.timestamp < ttl) {
+      return cached.data;
+    }
+
+    const RANGE_MAP: Record<string, { interval: string; range: string; intervalLabel: string }> = {
+      '1D': { interval: '1m', range: '1d', intervalLabel: '1m' },
+      '1W': { interval: '5m', range: '5d', intervalLabel: '5m' },
+      '1M': { interval: '30m', range: '1mo', intervalLabel: '30m' },
+      '3M': { interval: '1d', range: '3mo', intervalLabel: '1d' },
+      '6M': { interval: '1d', range: '6mo', intervalLabel: '1d' },
+      '1Y': { interval: '1d', range: '1y', intervalLabel: '1d' },
+      '5Y': { interval: '1wk', range: '5y', intervalLabel: '1wk' },
+      'ALL': { interval: '1mo', range: 'max', intervalLabel: '1mo' },
+    };
+
+    const cfg = RANGE_MAP[normRange];
+    const yahooTicker = YAHOO_SYMBOL_MAP[inst.symbol] || `${inst.symbol}.NS`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooTicker)}?interval=${cfg.interval}&range=${cfg.range}`;
+
+    const chartResult = await this.centralApi.execute({ apiName: 'chart', url, isUpstream: true }, async () => {
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      }
+
+      const data: any = await res.json();
+      const result = data.chart?.result?.[0];
+      if (!result) {
+        throw new Error(`No chart data returned by exchange feeds for ${inst.symbol}`);
+      }
+
+      const meta = result.meta || {};
+      const timestamps = result.timestamp || [];
+      const quote = result.indicators?.quote?.[0] || {};
+
+      if (timestamps.length === 0) {
+        throw new Error(`Zero timestamps returned for ${inst.symbol} (${normRange})`);
+      }
+
+      const lastTimestamp = timestamps[timestamps.length - 1];
+      const latestDateStr = new Date(lastTimestamp * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+      let sessionStartSec: number | undefined;
+      let sessionEndSec: number | undefined;
+      if (normRange === '1D') {
+        sessionStartSec = Math.floor(new Date(`${latestDateStr}T09:15:00+05:30`).getTime() / 1000);
+        sessionEndSec = Math.floor(new Date(`${latestDateStr}T15:30:00+05:30`).getTime() / 1000);
+      }
+
+      const rawCandles: Array<{
+        time: number;
+        open: number;
+        high: number;
+        low: number;
+        close: number;
+        volume: number;
+        istTime: string;
+        istDate: string;
+      }> = [];
+
+      for (let i = 0; i < timestamps.length; i++) {
+        const t = timestamps[i];
+        const dateStr = new Date(t * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+        // 1D RULE: ONLY the latest trading session in 1-minute candles
+        if (normRange === '1D') {
+          if (dateStr !== latestDateStr) continue;
+        }
+
+        let o = quote.open?.[i];
+        let h = quote.high?.[i];
+        let l = quote.low?.[i];
+        let c = quote.close?.[i];
+        let v = quote.volume?.[i] || 0;
+
+        if (o == null || h == null || l == null || c == null || isNaN(o) || isNaN(c)) {
+          continue;
+        }
+
+        const istDateObj = new Date(t * 1000);
+        const istTime = istDateObj.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
+        const istDate = istDateObj.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false }) + ' IST';
+
+        rawCandles.push({
+          time: t,
+          open: Number(o.toFixed(inst.digits)),
+          high: Number(h.toFixed(inst.digits)),
+          low: Number(l.toFixed(inst.digits)),
+          close: Number(c.toFixed(inst.digits)),
+          volume: v,
+          istTime,
+          istDate,
+        });
+      }
+
+      if (rawCandles.length === 0) {
+        throw new Error(`Zero valid candles parsed for ${inst.symbol} (${normRange})`);
+      }
+
+      const firstCandle = rawCandles[0];
+      const lastCandle = rawCandles[rawCandles.length - 1];
+
+      let sessionHigh = rawCandles.reduce((max, c) => (c.high > max ? c.high : max), rawCandles[0].high);
+      let sessionLow = rawCandles.reduce((min, c) => (c.low < min ? c.low : min), rawCandles[0].low);
+
+      if (meta.regularMarketDayHigh && meta.regularMarketDayHigh > sessionHigh) {
+        sessionHigh = meta.regularMarketDayHigh;
+      }
+      if (meta.regularMarketDayLow && meta.regularMarketDayLow < sessionLow) {
+        sessionLow = meta.regularMarketDayLow;
+      }
+
+      const prevClose = meta.chartPreviousClose || meta.previousClose || firstCandle.open;
+      const currentPrice = meta.regularMarketPrice || lastCandle.close;
+
+      const payload = {
+        symbol: inst.symbol,
+        displayName: inst.displayName || inst.symbol,
+        range: normRange,
+        interval: cfg.intervalLabel,
+        prevClose: Number(prevClose.toFixed(inst.digits)),
+        currentPrice: Number(currentPrice.toFixed(inst.digits)),
+        open: Number(firstCandle.open.toFixed(inst.digits)),
+        high: Number(sessionHigh.toFixed(inst.digits)),
+        low: Number(sessionLow.toFixed(inst.digits)),
+        fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh
+          ? Number(meta.fiftyTwoWeekHigh.toFixed(inst.digits))
+          : Number(sessionHigh.toFixed(inst.digits)),
+        fiftyTwoWeekLow: meta.fiftyTwoWeekLow
+          ? Number(meta.fiftyTwoWeekLow.toFixed(inst.digits))
+          : Number(sessionLow.toFixed(inst.digits)),
+        sessionStartIST: '09:15:00',
+        sessionEndIST: '15:30:00',
+        sessionStartTime: sessionStartSec,
+        sessionEndTime: sessionEndSec,
+        sessionDateIST: latestDateStr,
+        candles: rawCandles,
+      };
+
+      return payload;
+    });
+
+    this.chartCache.set(cacheKey, { timestamp: Date.now(), data: chartResult });
+    return chartResult;
   }
 
   public getQuote(symbol: string): LiveQuote | null {

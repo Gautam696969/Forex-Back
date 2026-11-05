@@ -80,9 +80,9 @@ export declare class AdminController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            displayName: string;
             base: string;
             quote: string;
-            displayName: string;
             category: string;
             sector: string | null;
             digits: number;

@@ -109,7 +109,9 @@ export declare class UpstoxBrokerService extends EventEmitter implements OnModul
         timing: string;
         currentIST: string;
     };
+    private chartCache;
     getInstrument(symbol: string): InstrumentInfo | null;
+    getChartData(symbol?: string, range?: string): Promise<any>;
     getQuote(symbol: string): LiveQuote | null;
     getAllQuotes(): LiveQuote[];
     getCandles(symbol?: string, timeframe?: string): Promise<{

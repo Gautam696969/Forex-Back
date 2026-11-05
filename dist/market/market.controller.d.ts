@@ -27,9 +27,9 @@ export declare class MarketController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        displayName: string;
         base: string;
         quote: string;
-        displayName: string;
         category: string;
         sector: string | null;
         digits: number;
@@ -61,9 +61,9 @@ export declare class MarketController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        displayName: string;
         base: string;
         quote: string;
-        displayName: string;
         category: string;
         sector: string | null;
         digits: number;
@@ -99,9 +99,9 @@ export declare class MarketController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        displayName: string;
         base: string;
         quote: string;
-        displayName: string;
         category: string;
         sector: string | null;
         digits: number;
