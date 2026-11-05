@@ -36,7 +36,11 @@ export class ForexEngineService extends EventEmitter implements OnModuleInit, On
   }
 
   async onModuleInit() {
-    await this.loadPairsFromDb();
+    try {
+      await this.loadPairsFromDb();
+    } catch (err: any) {
+      console.warn(`[FOREX ENGINE WARNING] Could not load pairs from DB on startup: ${err?.message}`);
+    }
 
     // Listen to real ticks from Upstox Broker Service
     this.upstoxBroker.on('ticks', (quotes: LiveQuote[]) => {

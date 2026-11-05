@@ -14,15 +14,15 @@ export declare class ApiController implements OnModuleInit {
     onModuleInit(): void;
     getIndicesData(): Promise<{
         symbol: string;
-        displayName: string;
-        price: number;
+        displayName: any;
+        price: any;
         change: number;
         changePercent: number;
-        high: number;
-        low: number;
-        prevClose: number;
+        high: any;
+        low: any;
+        prevClose: number | undefined;
         isPositive: boolean;
-        digits: number;
+        digits: any;
         lastUpdatedIST: string;
     }[]>;
     getQuotesData(): Promise<{
@@ -40,44 +40,7 @@ export declare class ApiController implements OnModuleInit {
         lastUpdatedIST: string;
         category: "INDICES" | "STOCKS" | "COMMODITIES";
     }[]>;
-    getPairsData(category?: string): Promise<{
-        price: number;
-        currentBid: number;
-        currentAsk: number;
-        change24h: number;
-        high24h: number;
-        low24h: number;
-        volume24h: number;
-        lastUpdatedIST: string;
-        symbol: string;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        base: string;
-        quote: string;
-        displayName: string;
-        category: string;
-        sector: string | null;
-        digits: number;
-        pipSize: number;
-        contractSize: number;
-        defaultSpread: number;
-        minLot: number;
-        maxLot: number;
-        lotStep: number;
-        open24h: number;
-        close24h: number;
-        marketCap: string | null;
-        peRatio: number | null;
-        pbRatio: number | null;
-        eps: number | null;
-        dividendYield: number | null;
-        roe: number | null;
-        week52High: number | null;
-        week52Low: number | null;
-        about: string | null;
-        active: boolean;
-    }[]>;
+    getPairsData(category?: string): Promise<any[]>;
     getCandlesData(symbol?: string, interval?: string): Promise<{
         symbol: string;
         interval: string;
@@ -86,14 +49,15 @@ export declare class ApiController implements OnModuleInit {
         lastUpdated: string;
         lastCandle?: import("./upstox-broker.service.js").CandleBar;
     }>;
-    getStatusData(): {
+    getStatusData(): Promise<{
         isOpen: boolean;
         status: "OPEN" | "CLOSED";
         dataFeed: string;
+        database: string;
         timing: string;
         currentIST: string;
         message: string;
-    };
+    }>;
     getIpoData(status?: string): Promise<{
         ipos: import("./nse-ipo.service.js").IpoItem[];
         lastUpdated: string;

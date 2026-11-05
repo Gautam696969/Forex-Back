@@ -24,7 +24,12 @@ let ForexEngineService = class ForexEngineService extends EventEmitter {
         this.setMaxListeners(100);
     }
     async onModuleInit() {
-        await this.loadPairsFromDb();
+        try {
+            await this.loadPairsFromDb();
+        }
+        catch (err) {
+            console.warn(`[FOREX ENGINE WARNING] Could not load pairs from DB on startup: ${err?.message}`);
+        }
         this.upstoxBroker.on('ticks', (quotes) => {
             const ticks = [];
             for (const q of quotes) {

@@ -8,7 +8,13 @@ import { Injectable } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 let PrismaService = class PrismaService extends PrismaClient {
     async onModuleInit() {
-        await this.$connect();
+        try {
+            await this.$connect();
+            console.log('✔ [DATABASE] Prisma connected to PostgreSQL successfully');
+        }
+        catch (err) {
+            console.error(`\x1b[31m[DATABASE ERROR] Failed to connect to database: ${err?.message}\x1b[0m`);
+        }
     }
     async onModuleDestroy() {
         await this.$disconnect();

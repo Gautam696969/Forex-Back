@@ -63,12 +63,21 @@ let CentralApiService = CentralApiService_1 = class CentralApiService {
             const reason = causeCode && !rawMessage.includes(causeCode) ? `${rawMessage} (${causeCode})` : rawMessage;
             this.recordFailure(apiName, reason);
             console.error(`\x1b[31m[API FAILED] ${dateTimeIST} api=${apiName} ${duration}ms reason=${reason} url=${reqUrl}\x1b[0m`);
+            console.error(`\x1b[31m[API FAILED] api=${apiName} ${dateTimeIST} reason=${reason}\x1b[0m`);
+            if (err?.stack) {
+                console.error(err.stack);
+            }
             throw err;
         }
     }
     async wrapRoute(res, apiName, url, fn) {
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        res.setHeader('Pragma', 'no-cache');
+        try {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+        }
+        catch { }
+        const start = Date.now();
+        const timeIST = this.getISTString(new Date(start));
         try {
             const data = await this.execute({ apiName, url }, fn);
             return res.status(200).json({
@@ -80,7 +89,12 @@ let CentralApiService = CentralApiService_1 = class CentralApiService {
         }
         catch (err) {
             const errorReason = err?.message || 'Upstream service unavailable';
-            return res.status(502).json({
+            const statusCode = err?.status && typeof err.status === 'number'
+                ? err.status
+                : err?.statusCode && typeof err.statusCode === 'number'
+                    ? err.statusCode
+                    : 502;
+            return res.status(statusCode).json({
                 ok: false,
                 api: apiName,
                 error: errorReason,

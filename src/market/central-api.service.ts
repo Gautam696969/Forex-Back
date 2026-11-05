@@ -96,6 +96,12 @@ export class CentralApiService implements OnModuleInit, OnModuleDestroy {
       console.error(
         `\x1b[31m[API FAILED] ${dateTimeIST} api=${apiName} ${duration}ms reason=${reason} url=${reqUrl}\x1b[0m`,
       );
+      console.error(
+        `\x1b[31m[API FAILED] api=${apiName} ${dateTimeIST} reason=${reason}\x1b[0m`,
+      );
+      if (err?.stack) {
+        console.error(err.stack);
+      }
       throw err;
     }
   }
@@ -104,7 +110,7 @@ export class CentralApiService implements OnModuleInit, OnModuleDestroy {
    * Central wrapper for controller routes
    * Ensures Cache-Control: no-store and standardized response format:
    * Success: 200 { ok: true, api, data, serverTime }
-   * Failure: 502 { ok: false, api, error }
+   * Failure: JSON with status code { ok: false, api, error }, never a blank 500
    */
   public async wrapRoute<T>(
     res: any,
@@ -112,8 +118,13 @@ export class CentralApiService implements OnModuleInit, OnModuleDestroy {
     url: string,
     fn: () => Promise<T>,
   ): Promise<any> {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
+    try {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+    } catch {}
+
+    const start = Date.now();
+    const timeIST = this.getISTString(new Date(start));
 
     try {
       const data = await this.execute({ apiName, url }, fn);
@@ -125,7 +136,14 @@ export class CentralApiService implements OnModuleInit, OnModuleDestroy {
       });
     } catch (err: any) {
       const errorReason = err?.message || 'Upstream service unavailable';
-      return res.status(502).json({
+      const statusCode =
+        err?.status && typeof err.status === 'number'
+          ? err.status
+          : err?.statusCode && typeof err.statusCode === 'number'
+          ? err.statusCode
+          : 502;
+
+      return res.status(statusCode).json({
         ok: false,
         api: apiName,
         error: errorReason,

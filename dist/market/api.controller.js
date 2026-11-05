@@ -39,12 +39,24 @@ let ApiController = class ApiController {
     }
     async getIndicesData() {
         const targetIndices = ['NIFTY 50', 'SENSEX', 'BANK NIFTY', 'NIFTY IT'];
-        const dbIndices = await this.prisma.currencyPair.findMany({
-            where: { category: 'INDICES', active: true },
-        });
-        let quotes = this.upstoxBroker.getAllQuotes();
-        if (quotes.length === 0) {
-            quotes = await this.upstoxBroker.syncQuotesFromYahoo();
+        let dbIndices = [];
+        try {
+            dbIndices = await this.prisma.currencyPair.findMany({
+                where: { category: 'INDICES', active: true },
+            });
+        }
+        catch (dbErr) {
+            console.warn(`[INDICES WARNING] Database unavailable: ${dbErr?.message || dbErr}`);
+        }
+        let quotes = [];
+        try {
+            quotes = this.upstoxBroker.getAllQuotes();
+            if (quotes.length === 0) {
+                quotes = await this.upstoxBroker.syncQuotesFromYahoo();
+            }
+        }
+        catch (feedErr) {
+            console.warn(`[INDICES WARNING] Upstream quote feed failed: ${feedErr?.message || feedErr}`);
         }
         const quoteMap = new Map(quotes.map((q) => [q.symbol, q]));
         const results = targetIndices.map((sym) => {
@@ -59,22 +71,23 @@ let ApiController = class ApiController {
                 digits: 2,
             };
             const live = quoteMap.get(sym);
-            const price = live?.bid ?? found.currentBid;
-            const changePct = live?.change24h ?? found.change24h;
+            const price = live?.bid ?? found.currentBid ?? 0;
+            const changePct = live?.change24h ?? found.change24h ?? 0;
             const isPositive = changePct >= 0;
             let prevClose = live?.close24h;
             if (!prevClose || prevClose <= 0) {
                 prevClose = changePct !== 0 ? Number((price / (1 + changePct / 100)).toFixed(2)) : found.open24h || price;
             }
-            const changeAmount = live?.changeAmount ?? Number((price - prevClose).toFixed(2));
+            const validPrevClose = prevClose || price || 1;
+            const changeAmount = live?.changeAmount ?? Number((price - validPrevClose).toFixed(2));
             return {
                 symbol: sym,
                 displayName: found.displayName || sym,
                 price,
                 change: changeAmount,
                 changePercent: Number(changePct.toFixed(2)),
-                high: live?.high24h ?? found.high24h,
-                low: live?.low24h ?? found.low24h,
+                high: live?.high24h ?? found.high24h ?? price,
+                low: live?.low24h ?? found.low24h ?? price,
                 prevClose,
                 isPositive,
                 digits: found.digits || 2,
@@ -112,15 +125,47 @@ let ApiController = class ApiController {
         if (category && category !== 'ALL') {
             where.category = category;
         }
-        const pairs = await this.prisma.currencyPair.findMany({
-            where,
-            orderBy: { symbol: 'asc' },
-        });
-        let quotes = this.upstoxBroker.getAllQuotes();
-        if (quotes.length === 0) {
-            quotes = await this.upstoxBroker.syncQuotesFromYahoo();
+        let pairs = [];
+        try {
+            pairs = await this.prisma.currencyPair.findMany({
+                where,
+                orderBy: { symbol: 'asc' },
+            });
+        }
+        catch (dbErr) {
+            console.warn(`[PAIRS WARNING] Database unavailable: ${dbErr?.message || dbErr}. Falling back to quote feed.`);
+        }
+        let quotes = [];
+        try {
+            quotes = this.upstoxBroker.getAllQuotes();
+            if (quotes.length === 0) {
+                quotes = await this.upstoxBroker.syncQuotesFromYahoo();
+            }
+        }
+        catch (feedErr) {
+            console.warn(`[PAIRS WARNING] Upstream quote feed failed: ${feedErr?.message || feedErr}`);
         }
         const quoteMap = new Map(quotes.map((q) => [q.symbol, q]));
+        if (pairs.length === 0 && quotes.length > 0) {
+            return quotes
+                .filter((q) => !category || category === 'ALL' || q.category === category)
+                .map((q) => ({
+                id: `fallback-${q.symbol}`,
+                symbol: q.symbol,
+                displayName: q.symbol,
+                category: q.category || 'EQUITIES',
+                price: q.bid,
+                currentBid: q.bid,
+                currentAsk: q.ask,
+                change24h: q.change24h,
+                high24h: q.high24h,
+                low24h: q.low24h,
+                volume24h: q.volume24h || 0,
+                digits: q.digits || 2,
+                active: true,
+                lastUpdatedIST: this.centralApi.getISTTimeOnly(),
+            }));
+        }
         return pairs.map((pair) => {
             const live = quoteMap.get(pair.symbol);
             const ltp = live?.bid ?? pair.currentBid;
@@ -141,15 +186,61 @@ let ApiController = class ApiController {
     async getCandlesData(symbol = 'NIFTY 50', interval = '1m') {
         return this.upstoxBroker.getCandles(symbol, interval);
     }
-    getStatusData() {
-        const market = this.upstoxBroker.isMarketOpen();
+    async getStatusData() {
+        const now = new Date();
+        const istTimeStr = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
+        const istParts = istTimeStr.split(':').map(Number);
+        const hours = istParts[0] || 0;
+        const minutes = istParts[1] || 0;
+        const totalMinutes = hours * 60 + minutes;
+        const istDayStr = now.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short' });
+        const isWeekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(istDayStr);
+        const nseOpen = 9 * 60 + 15;
+        const nseClose = 15 * 60 + 30;
+        const isOpen = isWeekday && totalMinutes >= nseOpen && totalMinutes <= nseClose;
+        const status = isOpen ? 'OPEN' : 'CLOSED';
+        let dataFeed = 'LIVE';
+        try {
+            if (this.upstoxBroker) {
+                const feedInfo = this.upstoxBroker.getHealthInfo?.();
+                if (feedInfo?.status === 'offline') {
+                    dataFeed = 'UNKNOWN';
+                }
+                else if (feedInfo?.status === 'degraded' || feedInfo?.status === 'stale') {
+                    dataFeed = 'DEGRADED';
+                }
+                else {
+                    dataFeed = 'LIVE';
+                }
+            }
+            else {
+                dataFeed = 'UNKNOWN';
+                console.warn('[STATUS WARNING] upstoxBroker service reference is unavailable');
+            }
+        }
+        catch (feedErr) {
+            dataFeed = 'UNKNOWN';
+            console.warn(`[STATUS WARNING] Data feed check failed: ${feedErr?.message || feedErr}`);
+        }
+        let database = 'CONNECTED';
+        try {
+            await Promise.race([
+                this.prisma.$queryRaw `SELECT 1`,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Database ping timeout (1000ms)')), 1000)),
+            ]);
+        }
+        catch (dbErr) {
+            database = 'UNKNOWN';
+            console.warn(`[STATUS WARNING] Database check failed: ${dbErr?.message || dbErr}`);
+        }
         return {
-            isOpen: market.isOpen,
-            status: market.status,
-            dataFeed: 'LIVE',
-            timing: market.timing || '9:15 AM – 3:30 PM IST (Mon–Fri)',
-            currentIST: market.currentIST || this.centralApi.getISTTimeOnly(),
-            message: market.message,
+            isOpen,
+            status,
+            dataFeed,
+            database,
+            timing: '9:15 AM – 3:30 PM IST (Mon–Fri)',
+            currentIST: `${istTimeStr} IST`,
+            message: isOpen ? 'Market is Open (Live NSE/BSE)' : 'Market Closed (9:15 AM – 3:30 PM IST)',
         };
     }
     async getIpoData(status) {
@@ -157,50 +248,134 @@ let ApiController = class ApiController {
         return res;
     }
     async getIndices(req, res) {
-        return this.centralApi.wrapRoute(res, 'indices', req?.originalUrl || '/api/indices', async () => {
-            return this.getIndicesData();
-        });
+        try {
+            return await this.centralApi.wrapRoute(res, 'indices', req?.originalUrl || '/api/indices', async () => {
+                return this.getIndicesData();
+            });
+        }
+        catch (err) {
+            const timeIST = this.centralApi.getISTString();
+            const reason = err?.message || String(err);
+            console.error(`\x1b[31m[API FAILED] api=indices ${timeIST} reason=${reason}\x1b[0m`);
+            if (err?.stack)
+                console.error(err.stack);
+            return res.status(500).json({ ok: false, api: 'indices', error: reason });
+        }
     }
     async getQuotes(req, res) {
-        return this.centralApi.wrapRoute(res, 'quotes', req?.originalUrl || '/api/quotes', async () => {
-            return this.getQuotesData();
-        });
+        try {
+            return await this.centralApi.wrapRoute(res, 'quotes', req?.originalUrl || '/api/quotes', async () => {
+                return this.getQuotesData();
+            });
+        }
+        catch (err) {
+            const timeIST = this.centralApi.getISTString();
+            const reason = err?.message || String(err);
+            console.error(`\x1b[31m[API FAILED] api=quotes ${timeIST} reason=${reason}\x1b[0m`);
+            if (err?.stack)
+                console.error(err.stack);
+            return res.status(500).json({ ok: false, api: 'quotes', error: reason });
+        }
     }
     async getPairs(category, req, res) {
-        return this.centralApi.wrapRoute(res, 'pairs', req?.originalUrl || '/api/pairs', async () => {
-            return this.getPairsData(category);
-        });
+        try {
+            return await this.centralApi.wrapRoute(res, 'pairs', req?.originalUrl || '/api/pairs', async () => {
+                return this.getPairsData(category);
+            });
+        }
+        catch (err) {
+            const timeIST = this.centralApi.getISTString();
+            const reason = err?.message || String(err);
+            console.error(`\x1b[31m[API FAILED] api=pairs ${timeIST} reason=${reason}\x1b[0m`);
+            if (err?.stack)
+                console.error(err.stack);
+            return res.status(500).json({ ok: false, api: 'pairs', error: reason });
+        }
     }
     async getCandles(symbol = 'NIFTY 50', interval, timeframe, req, res) {
         const tf = interval || timeframe || '1m';
-        return this.centralApi.wrapRoute(res, 'candles', req?.originalUrl || `/api/candles?symbol=${symbol}&interval=${tf}`, async () => {
-            return this.getCandlesData(symbol, tf);
-        });
+        try {
+            return await this.centralApi.wrapRoute(res, 'candles', req?.originalUrl || `/api/candles?symbol=${symbol}&interval=${tf}`, async () => {
+                return this.getCandlesData(symbol, tf);
+            });
+        }
+        catch (err) {
+            const timeIST = this.centralApi.getISTString();
+            const reason = err?.message || String(err);
+            console.error(`\x1b[31m[API FAILED] api=candles ${timeIST} reason=${reason}\x1b[0m`);
+            if (err?.stack)
+                console.error(err.stack);
+            return res.status(500).json({ ok: false, api: 'candles', error: reason });
+        }
     }
     async getStatus(req, res) {
-        return this.centralApi.wrapRoute(res, 'status', req?.originalUrl || '/api/status', async () => {
-            return this.getStatusData();
-        });
+        try {
+            return await this.centralApi.wrapRoute(res, 'status', req?.originalUrl || '/api/status', async () => {
+                return this.getStatusData();
+            });
+        }
+        catch (err) {
+            const timeIST = this.centralApi.getISTString();
+            const reason = err?.message || String(err);
+            console.error(`\x1b[31m[API FAILED] api=status ${timeIST} reason=${reason}\x1b[0m`);
+            if (err?.stack)
+                console.error(err.stack);
+            return res.status(500).json({
+                ok: false,
+                api: 'status',
+                error: reason,
+            });
+        }
     }
     async getIpo(status, req, res) {
-        return this.centralApi.wrapRoute(res, 'ipo', req?.originalUrl || '/api/ipo', async () => {
-            return this.getIpoData(status);
-        });
+        try {
+            return await this.centralApi.wrapRoute(res, 'ipo', req?.originalUrl || '/api/ipo', async () => {
+                return this.getIpoData(status);
+            });
+        }
+        catch (err) {
+            const timeIST = this.centralApi.getISTString();
+            const reason = err?.message || String(err);
+            console.error(`\x1b[31m[API FAILED] api=ipo ${timeIST} reason=${reason}\x1b[0m`);
+            if (err?.stack)
+                console.error(err.stack);
+            return res.status(500).json({ ok: false, api: 'ipo', error: reason });
+        }
     }
     async getIposAlias(status, req, res) {
-        return this.centralApi.wrapRoute(res, 'ipo', req?.originalUrl || '/api/ipos', async () => {
-            return this.getIpoData(status);
-        });
+        try {
+            return await this.centralApi.wrapRoute(res, 'ipo', req?.originalUrl || '/api/ipos', async () => {
+                return this.getIpoData(status);
+            });
+        }
+        catch (err) {
+            const timeIST = this.centralApi.getISTString();
+            const reason = err?.message || String(err);
+            console.error(`\x1b[31m[API FAILED] api=ipo ${timeIST} reason=${reason}\x1b[0m`);
+            if (err?.stack)
+                console.error(err.stack);
+            return res.status(500).json({ ok: false, api: 'ipo', error: reason });
+        }
     }
     getHealth(res) {
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        const health = this.centralApi.getHealthSummary();
-        return res.status(200).json({
-            ok: true,
-            api: 'health',
-            data: health,
-            serverTime: this.centralApi.getISTString(),
-        });
+        try {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            const health = this.centralApi.getHealthSummary();
+            return res.status(200).json({
+                ok: true,
+                api: 'health',
+                data: health,
+                serverTime: this.centralApi.getISTString(),
+            });
+        }
+        catch (err) {
+            const timeIST = this.centralApi.getISTString();
+            const reason = err?.message || String(err);
+            console.error(`\x1b[31m[API FAILED] api=health ${timeIST} reason=${reason}\x1b[0m`);
+            if (err?.stack)
+                console.error(err.stack);
+            return res.status(500).json({ ok: false, api: 'health', error: reason });
+        }
     }
 };
 __decorate([
