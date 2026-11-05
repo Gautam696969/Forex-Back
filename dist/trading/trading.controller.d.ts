@@ -1,8 +1,10 @@
 import { TradingService } from './trading.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
+import { CentralApiService } from '../market/central-api.service.js';
 export declare class TradingController {
     private tradingService;
-    constructor(tradingService: TradingService);
+    private centralApi;
+    constructor(tradingService: TradingService, centralApi: CentralApiService);
     createOrder(req: any, body: CreateOrderDto): Promise<{
         success: boolean;
         order: {

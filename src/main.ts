@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module.js';
+import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
+import { RequestLoggerMiddleware } from './common/request-logger.middleware.js';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
@@ -19,6 +21,10 @@ process.on('uncaughtException', (err: Error) => {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // 0. Request timing & centralized exception filter (RULE 4)
+  app.use(new RequestLoggerMiddleware().use);
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // 1. Helmet Security Headers (allowing WebSocket/inline cross-origin if needed)
   app.use(

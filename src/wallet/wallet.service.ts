@@ -9,13 +9,47 @@ export class WalletService {
     private marketGateway: MarketGateway,
   ) {}
 
-  async resetDemoBalance(userId: string) {
-    const account = await this.prisma.account.findUnique({
+  /**
+   * Ensure user has a trading account with ₹1,00,000 demo capital.
+   * Creates one automatically on first access if missing.
+   */
+  async getOrCreateAccount(userId: string) {
+    let account = await this.prisma.account.findUnique({
       where: { userId },
-      include: { positions: { where: { status: 'OPEN' } } },
     });
 
-    if (!account) throw new NotFoundException('Account not found');
+    if (!account) {
+      const accountNumber = `DEMO-${Math.floor(100000 + Math.random() * 900000)}`;
+      account = await this.prisma.account.create({
+        data: {
+          userId,
+          accountNumber,
+          balance: 100000.0,
+          equity: 100000.0,
+          freeMargin: 100000.0,
+          usedMargin: 0.0,
+          marginLevel: 0.0,
+          currency: 'INR',
+          leverage: 1,
+          isDemo: true,
+          ledgers: {
+            create: {
+              type: 'INITIAL_DEPOSIT',
+              amount: 100000.0,
+              balanceBefore: 0.0,
+              balanceAfter: 100000.0,
+              note: 'Initial ₹1,00,000 Paper Trading Demo Capital',
+            },
+          },
+        },
+      });
+    }
+
+    return account;
+  }
+
+  async resetDemoBalance(userId: string) {
+    const account = await this.getOrCreateAccount(userId);
 
     // Close any open positions
     await this.prisma.position.updateMany({
@@ -70,11 +104,7 @@ export class WalletService {
       throw new BadRequestException('Deposit amount must be between ₹1,000 and ₹5,00,000');
     }
 
-    const account = await this.prisma.account.findUnique({
-      where: { userId },
-    });
-
-    if (!account) throw new NotFoundException('Account not found');
+    const account = await this.getOrCreateAccount(userId);
 
     const balanceBefore = account.balance;
     const balanceAfter = Number((account.balance + amount).toFixed(2));
@@ -113,11 +143,7 @@ export class WalletService {
   }
 
   async getLedger(userId: string) {
-    const account = await this.prisma.account.findUnique({
-      where: { userId },
-    });
-
-    if (!account) throw new NotFoundException('Account not found');
+    const account = await this.getOrCreateAccount(userId);
 
     return this.prisma.accountLedger.findMany({
       where: { accountId: account.id },

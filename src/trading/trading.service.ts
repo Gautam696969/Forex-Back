@@ -33,14 +33,47 @@ export class TradingService implements OnModuleInit {
     });
   }
 
-  async createOrder(userId: string, dto: CreateOrderDto) {
-    const account = await this.prisma.account.findUnique({
+  /**
+   * Ensure user has a trading account with ₹1,00,000 demo capital.
+   * Creates one automatically on first access if missing.
+   */
+  async getOrCreateAccount(userId: string) {
+    let account = await this.prisma.account.findUnique({
       where: { userId },
     });
 
     if (!account) {
-      throw new NotFoundException('Trading account not found');
+      const accountNumber = `DEMO-${Math.floor(100000 + Math.random() * 900000)}`;
+      account = await this.prisma.account.create({
+        data: {
+          userId,
+          accountNumber,
+          balance: 100000.0,
+          equity: 100000.0,
+          freeMargin: 100000.0,
+          usedMargin: 0.0,
+          marginLevel: 0.0,
+          currency: 'INR',
+          leverage: 1,
+          isDemo: true,
+          ledgers: {
+            create: {
+              type: 'INITIAL_DEPOSIT',
+              amount: 100000.0,
+              balanceBefore: 0.0,
+              balanceAfter: 100000.0,
+              note: 'Initial ₹1,00,000 Paper Trading Demo Capital',
+            },
+          },
+        },
+      });
     }
+
+    return account;
+  }
+
+  async createOrder(userId: string, dto: CreateOrderDto) {
+    const account = await this.getOrCreateAccount(userId);
 
     const pair = await this.prisma.currencyPair.findUnique({
       where: { symbol: dto.symbol },
@@ -262,11 +295,7 @@ export class TradingService implements OnModuleInit {
   }
 
   async closeAllPositions(userId: string) {
-    const account = await this.prisma.account.findUnique({
-      where: { userId },
-    });
-
-    if (!account) throw new NotFoundException('Account not found');
+    const account = await this.getOrCreateAccount(userId);
 
     const openPositions = await this.prisma.position.findMany({
       where: { accountId: account.id, status: 'OPEN' },
@@ -286,11 +315,7 @@ export class TradingService implements OnModuleInit {
     positionId: string,
     slTp: { stopLoss?: number | null; takeProfit?: number | null },
   ) {
-    const account = await this.prisma.account.findUnique({
-      where: { userId },
-    });
-
-    if (!account) throw new NotFoundException('Account not found');
+    const account = await this.getOrCreateAccount(userId);
 
     const position = await this.prisma.position.findFirst({
       where: { id: positionId, accountId: account.id, status: 'OPEN' },
@@ -311,11 +336,7 @@ export class TradingService implements OnModuleInit {
   }
 
   async getOpenPositions(userId: string) {
-    const account = await this.prisma.account.findUnique({
-      where: { userId },
-    });
-
-    if (!account) return [];
+    const account = await this.getOrCreateAccount(userId);
 
     const positions = await this.prisma.position.findMany({
       where: { accountId: account.id, status: 'OPEN' },
@@ -352,11 +373,7 @@ export class TradingService implements OnModuleInit {
   }
 
   async getPendingOrders(userId: string) {
-    const account = await this.prisma.account.findUnique({
-      where: { userId },
-    });
-
-    if (!account) return [];
+    const account = await this.getOrCreateAccount(userId);
 
     return this.prisma.order.findMany({
       where: { accountId: account.id, status: 'PENDING' },
@@ -365,11 +382,7 @@ export class TradingService implements OnModuleInit {
   }
 
   async cancelOrder(userId: string, orderId: string) {
-    const account = await this.prisma.account.findUnique({
-      where: { userId },
-    });
-
-    if (!account) throw new NotFoundException('Account not found');
+    const account = await this.getOrCreateAccount(userId);
 
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, accountId: account.id, status: 'PENDING' },
@@ -390,11 +403,7 @@ export class TradingService implements OnModuleInit {
     userId: string,
     filters?: { symbol?: string; limit?: number; offset?: number },
   ) {
-    const account = await this.prisma.account.findUnique({
-      where: { userId },
-    });
-
-    if (!account) return [];
+    const account = await this.getOrCreateAccount(userId);
 
     const where: any = { accountId: account.id };
     if (filters?.symbol) {
@@ -410,11 +419,7 @@ export class TradingService implements OnModuleInit {
   }
 
   async getAccountSummary(userId: string) {
-    const account = await this.prisma.account.findUnique({
-      where: { userId },
-    });
-
-    if (!account) throw new NotFoundException('Account not found');
+    const account = await this.getOrCreateAccount(userId);
 
     const openPositions = await this.getOpenPositions(userId);
     const totalUnrealizedPnl = openPositions.reduce((sum, p) => sum + p.unrealizedPnl, 0);

@@ -4,6 +4,21 @@ export declare class WalletService {
     private prisma;
     private marketGateway;
     constructor(prisma: PrismaService, marketGateway: MarketGateway);
+    getOrCreateAccount(userId: string): Promise<{
+        id: string;
+        accountNumber: string;
+        balance: number;
+        equity: number;
+        usedMargin: number;
+        freeMargin: number;
+        marginLevel: number;
+        currency: string;
+        leverage: number;
+        isDemo: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+    }>;
     resetDemoBalance(userId: string): Promise<{
         success: boolean;
         account: {

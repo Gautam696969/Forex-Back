@@ -15,7 +15,7 @@ import { Roles } from '../auth/roles.decorator.js';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
-@Controller('admin')
+@Controller(['admin', 'api/admin'])
 export class AdminController {
   constructor(private adminService: AdminService) {}
 

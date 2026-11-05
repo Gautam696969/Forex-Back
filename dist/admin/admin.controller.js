@@ -96,7 +96,7 @@ __decorate([
 AdminController = __decorate([
     UseGuards(JwtAuthGuard, RolesGuard),
     Roles('ADMIN'),
-    Controller('admin'),
+    Controller(['admin', 'api/admin']),
     __metadata("design:paramtypes", [AdminService])
 ], AdminController);
 export { AdminController };

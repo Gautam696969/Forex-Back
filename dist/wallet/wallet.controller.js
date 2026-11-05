@@ -52,7 +52,7 @@ __decorate([
 ], WalletController.prototype, "getLedger", null);
 WalletController = __decorate([
     UseGuards(JwtAuthGuard),
-    Controller('wallet'),
+    Controller(['wallet', 'api/wallet']),
     __metadata("design:paramtypes", [WalletService])
 ], WalletController);
 export { WalletController };

@@ -7,7 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service.js';
 import { MarketGateway } from '../market/market.gateway.js';
 let WalletService = class WalletService {
@@ -17,13 +17,40 @@ let WalletService = class WalletService {
         this.prisma = prisma;
         this.marketGateway = marketGateway;
     }
-    async resetDemoBalance(userId) {
-        const account = await this.prisma.account.findUnique({
+    async getOrCreateAccount(userId) {
+        let account = await this.prisma.account.findUnique({
             where: { userId },
-            include: { positions: { where: { status: 'OPEN' } } },
         });
-        if (!account)
-            throw new NotFoundException('Account not found');
+        if (!account) {
+            const accountNumber = `DEMO-${Math.floor(100000 + Math.random() * 900000)}`;
+            account = await this.prisma.account.create({
+                data: {
+                    userId,
+                    accountNumber,
+                    balance: 100000.0,
+                    equity: 100000.0,
+                    freeMargin: 100000.0,
+                    usedMargin: 0.0,
+                    marginLevel: 0.0,
+                    currency: 'INR',
+                    leverage: 1,
+                    isDemo: true,
+                    ledgers: {
+                        create: {
+                            type: 'INITIAL_DEPOSIT',
+                            amount: 100000.0,
+                            balanceBefore: 0.0,
+                            balanceAfter: 100000.0,
+                            note: 'Initial ₹1,00,000 Paper Trading Demo Capital',
+                        },
+                    },
+                },
+            });
+        }
+        return account;
+    }
+    async resetDemoBalance(userId) {
+        const account = await this.getOrCreateAccount(userId);
         await this.prisma.position.updateMany({
             where: { accountId: account.id, status: 'OPEN' },
             data: { status: 'CLOSED', closedAt: new Date() },
@@ -68,11 +95,7 @@ let WalletService = class WalletService {
         if (amount <= 0 || amount > 500000) {
             throw new BadRequestException('Deposit amount must be between ₹1,000 and ₹5,00,000');
         }
-        const account = await this.prisma.account.findUnique({
-            where: { userId },
-        });
-        if (!account)
-            throw new NotFoundException('Account not found');
+        const account = await this.getOrCreateAccount(userId);
         const balanceBefore = account.balance;
         const balanceAfter = Number((account.balance + amount).toFixed(2));
         const equityAfter = Number((account.equity + amount).toFixed(2));
@@ -106,11 +129,7 @@ let WalletService = class WalletService {
         };
     }
     async getLedger(userId) {
-        const account = await this.prisma.account.findUnique({
-            where: { userId },
-        });
-        if (!account)
-            throw new NotFoundException('Account not found');
+        const account = await this.getOrCreateAccount(userId);
         return this.prisma.accountLedger.findMany({
             where: { accountId: account.id },
             orderBy: { createdAt: 'desc' },

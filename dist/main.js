@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module.js';
+import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
+import { RequestLoggerMiddleware } from './common/request-logger.middleware.js';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
@@ -15,6 +17,8 @@ process.on('uncaughtException', (err) => {
 });
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
+    app.use(new RequestLoggerMiddleware().use);
+    app.useGlobalFilters(new AllExceptionsFilter());
     app.use(helmet({
         crossOriginResourcePolicy: { policy: 'cross-origin' },
         contentSecurityPolicy: false,

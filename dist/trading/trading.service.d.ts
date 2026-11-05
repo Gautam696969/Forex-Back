@@ -10,6 +10,21 @@ export declare class TradingService implements OnModuleInit {
     private lastEvaluationTime;
     constructor(prisma: PrismaService, forexEngine: ForexEngineService, marketGateway: MarketGateway);
     onModuleInit(): void;
+    getOrCreateAccount(userId: string): Promise<{
+        id: string;
+        accountNumber: string;
+        balance: number;
+        equity: number;
+        usedMargin: number;
+        freeMargin: number;
+        marginLevel: number;
+        currency: string;
+        leverage: number;
+        isDemo: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+    }>;
     createOrder(userId: string, dto: CreateOrderDto): Promise<{
         success: boolean;
         order: {

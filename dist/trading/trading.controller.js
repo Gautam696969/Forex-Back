@@ -14,41 +14,44 @@ import { Controller, Post, Get, Patch, Delete, Body, Param, Query, UseGuards, Re
 import { TradingService } from './trading.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { CentralApiService } from '../market/central-api.service.js';
 let TradingController = class TradingController {
     tradingService;
-    constructor(tradingService) {
+    centralApi;
+    constructor(tradingService, centralApi) {
         this.tradingService = tradingService;
+        this.centralApi = centralApi;
     }
     async createOrder(req, body) {
-        return this.tradingService.createOrder(req.user.id, body);
+        return this.centralApi.execute({ apiName: 'trading.orders', url: req.originalUrl || req.url }, () => this.tradingService.createOrder(req.user.id, body));
     }
     async getPositions(req) {
-        return this.tradingService.getOpenPositions(req.user.id);
+        return this.centralApi.execute({ apiName: 'trading.positions', url: req.originalUrl || req.url }, () => this.tradingService.getOpenPositions(req.user.id));
     }
     async closePosition(req, positionId) {
-        return this.tradingService.closePosition(req.user.id, positionId, 'MANUAL');
+        return this.centralApi.execute({ apiName: 'trading.positions.close', url: req.originalUrl || req.url }, () => this.tradingService.closePosition(req.user.id, positionId, 'MANUAL'));
     }
     async closeAllPositions(req) {
-        return this.tradingService.closeAllPositions(req.user.id);
+        return this.centralApi.execute({ apiName: 'trading.positions.close-all', url: req.originalUrl || req.url }, () => this.tradingService.closeAllPositions(req.user.id));
     }
     async modifyPosition(req, positionId, body) {
-        return this.tradingService.modifyPosition(req.user.id, positionId, body);
+        return this.centralApi.execute({ apiName: 'trading.positions.modify', url: req.originalUrl || req.url }, () => this.tradingService.modifyPosition(req.user.id, positionId, body));
     }
     async getPendingOrders(req) {
-        return this.tradingService.getPendingOrders(req.user.id);
+        return this.centralApi.execute({ apiName: 'trading.orders.pending', url: req.originalUrl || req.url }, () => this.tradingService.getPendingOrders(req.user.id));
     }
     async cancelOrder(req, orderId) {
-        return this.tradingService.cancelOrder(req.user.id, orderId);
+        return this.centralApi.execute({ apiName: 'trading.orders.cancel', url: req.originalUrl || req.url }, () => this.tradingService.cancelOrder(req.user.id, orderId));
     }
     async getTradeHistory(req, symbol, limit, offset) {
-        return this.tradingService.getTradeHistory(req.user.id, {
+        return this.centralApi.execute({ apiName: 'trading.history', url: req.originalUrl || req.url }, () => this.tradingService.getTradeHistory(req.user.id, {
             symbol,
             limit: limit ? parseInt(limit, 10) : 100,
             offset: offset ? parseInt(offset, 10) : 0,
-        });
+        }));
     }
     async getAccountSummary(req) {
-        return this.tradingService.getAccountSummary(req.user.id);
+        return this.centralApi.execute({ apiName: 'trading.summary', url: req.originalUrl || req.url }, () => this.tradingService.getAccountSummary(req.user.id));
     }
 };
 __decorate([
@@ -124,8 +127,9 @@ __decorate([
 ], TradingController.prototype, "getAccountSummary", null);
 TradingController = __decorate([
     UseGuards(JwtAuthGuard),
-    Controller('trading'),
-    __metadata("design:paramtypes", [TradingService])
+    Controller(['trading', 'api/trading']),
+    __metadata("design:paramtypes", [TradingService,
+        CentralApiService])
 ], TradingController);
 export { TradingController };
 //# sourceMappingURL=trading.controller.js.map

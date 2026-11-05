@@ -3,7 +3,7 @@ import { WalletService } from './wallet.service.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 
 @UseGuards(JwtAuthGuard)
-@Controller('wallet')
+@Controller(['wallet', 'api/wallet'])
 export class WalletController {
   constructor(private walletService: WalletService) {}
 
