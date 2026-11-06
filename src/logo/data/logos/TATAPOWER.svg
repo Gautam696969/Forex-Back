@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#002D62"/>
+    <polygon points="34,18 24,32 32,32 30,46 42,30 34,30" fill="#00B386"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="7" font-weight="900" fill="#ffffff" text-anchor="middle">TATA POWER</text>
+  </svg>

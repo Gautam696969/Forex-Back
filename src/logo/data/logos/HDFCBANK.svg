@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#004C8F"/>
+    <rect x="20" y="20" width="24" height="24" rx="2" fill="#ED232A"/>
+    <rect x="24" y="24" width="7" height="7" fill="#ffffff"/>
+    <rect x="33" y="24" width="7" height="7" fill="#ffffff"/>
+    <rect x="24" y="33" width="7" height="7" fill="#ffffff"/>
+    <rect x="33" y="33" width="7" height="7" fill="#004C8F"/>
+    <text x="32" y="56" font-family="-apple-system, sans-serif" font-size="7.5" font-weight="900" fill="#ffffff" text-anchor="middle">HDFC BANK</text>
+  </svg>
