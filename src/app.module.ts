@@ -7,6 +7,7 @@ import { MarketModule } from './market/market.module.js';
 import { TradingModule } from './trading/trading.module.js';
 import { WalletModule } from './wallet/wallet.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { LogoModule } from './logo/logo.module.js';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AdminModule } from './admin/admin.module.js';
     TradingModule,
     WalletModule,
     AdminModule,
+    LogoModule,
   ],
   controllers: [AppController],
   providers: [PrismaService],

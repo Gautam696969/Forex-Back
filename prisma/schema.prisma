@@ -318,3 +318,18 @@ model AuditLog {
   admin        User     @relation("AdminLogs", fields: [adminId], references: [id], onDelete: Cascade)
   targetUser   User?    @relation("TargetedLogs", fields: [targetUserId], references: [id], onDelete: SetNull)
 }
+
+model CompanyLogo {
+  id         String   @id @default(uuid())
+  symbol     String   @unique
+  domain     String?
+  logo_url   String?
+  source     String?
+  status     String   @default("missing") // found, missing
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  @@index([symbol])
+  @@index([domain])
+  @@map("company_logos")
+}
