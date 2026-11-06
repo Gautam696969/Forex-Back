@@ -1,5 +1,6 @@
 import { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { CentralApiService } from './central-api.service.js';
+import { LogoService } from '../logo/logo.service.js';
 export interface IpoItem {
     id: string;
     symbol: string;
@@ -28,13 +29,14 @@ export interface IpoItem {
 }
 export declare class NseIpoService implements OnModuleInit, OnModuleDestroy {
     private centralApi;
+    private logoService?;
     private readonly logger;
     private cachedIpos;
     private lastFetchedAt;
     private isFetching;
     private refreshTimer;
     private cookieJar;
-    constructor(centralApi: CentralApiService);
+    constructor(centralApi: CentralApiService, logoService?: LogoService | undefined);
     onModuleInit(): Promise<void>;
     onModuleDestroy(): void;
     getIpos(status?: string): Promise<{

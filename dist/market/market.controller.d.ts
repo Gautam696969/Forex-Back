@@ -332,7 +332,7 @@ export declare class MarketController {
         message: string;
         lastUpdated: string;
     }>;
-    getIpoDetail(id: string): Promise<import("./nse-ipo.service.js").IpoItem | {
+    getIpoDetail(id: string): Promise<{
         symbol: string;
         status: string;
         id: string;
@@ -351,7 +351,7 @@ export declare class MarketController {
         listingDate: Date | null;
         gmp: number | null;
         subscriptionRate: number;
-    }>;
+    } | import("./nse-ipo.service.js").IpoItem>;
     applyIpo(req: any, id: string, body: {
         lots: number;
         upiId: string;

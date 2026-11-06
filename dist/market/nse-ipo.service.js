@@ -7,20 +7,26 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 var NseIpoService_1;
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import https from 'https';
 import { CentralApiService } from './central-api.service.js';
+import { LogoService } from '../logo/logo.service.js';
 let NseIpoService = NseIpoService_1 = class NseIpoService {
     centralApi;
+    logoService;
     logger = new Logger(NseIpoService_1.name);
     cachedIpos = [];
     lastFetchedAt = 0;
     isFetching = false;
     refreshTimer = null;
     cookieJar = '';
-    constructor(centralApi) {
+    constructor(centralApi, logoService) {
         this.centralApi = centralApi;
+        this.logoService = logoService;
     }
     async onModuleInit() {
         this.logger.log('Initializing Real NSE IPO Service...');
@@ -219,6 +225,9 @@ let NseIpoService = NseIpoService_1 = class NseIpoService {
                 this.cachedIpos = items;
                 this.lastFetchedAt = Date.now();
                 this.logger.log(`Successfully synced ${items.length} real IPOs from NSE India.`);
+                if (this.logoService) {
+                    this.logoService.resolveIpoLogosBackground(items);
+                }
             }
             return this.cachedIpos;
         }
@@ -368,7 +377,9 @@ let NseIpoService = NseIpoService_1 = class NseIpoService {
 };
 NseIpoService = NseIpoService_1 = __decorate([
     Injectable(),
-    __metadata("design:paramtypes", [CentralApiService])
+    __param(1, Optional()),
+    __metadata("design:paramtypes", [CentralApiService,
+        LogoService])
 ], NseIpoService);
 export { NseIpoService };
 //# sourceMappingURL=nse-ipo.service.js.map

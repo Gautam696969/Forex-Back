@@ -6,12 +6,23 @@ import { LogoService } from './logo.service.js';
 export class LogoController {
   constructor(private readonly logoService: LogoService) {}
 
+  @Get('health')
+  async getHealth() {
+    return await this.logoService.getHealth();
+  }
+
+  @Get('ipo/:name')
+  async getIpoLogo(@Param('name') name: string, @Res() res: Response) {
+    const symbolKey = name.startsWith('ipo:') ? name : `ipo:${name}`;
+    return this.getLogo(symbolKey, res);
+  }
+
   @Get(':symbol')
   async getLogo(@Param('symbol') symbol: string, @Res() res: Response) {
     try {
       const { buffer, contentType } = await this.logoService.getLogo(symbol);
       res.setHeader('Content-Type', contentType);
-      // Proxy + Cache for 30 days as requested (2,592,000 seconds)
+      // Proxy + Cache for 30 days (2,592,000 seconds, immutable)
       res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
       return res.status(HttpStatus.OK).send(buffer);
     } catch (err: any) {
@@ -27,4 +38,3 @@ export class LogoController {
     }
   }
 }
-
