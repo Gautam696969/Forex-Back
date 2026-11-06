@@ -7,8 +7,10 @@ import { MarketGateway } from './market.gateway.js';
 import { MarketController } from './market.controller.js';
 import { ApiController } from './api.controller.js';
 import { PrismaService } from '../prisma.service.js';
+import { LogoModule } from '../logo/logo.module.js';
 
 @Module({
+  imports: [LogoModule],
   controllers: [MarketController, ApiController],
   providers: [CentralApiService, ForexEngineService, UpstoxBrokerService, NseIpoService, MarketGateway, PrismaService],
   exports: [CentralApiService, ForexEngineService, UpstoxBrokerService, NseIpoService, MarketGateway],

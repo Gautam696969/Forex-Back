@@ -268,8 +268,147 @@ export const TOP_STOCK_LOGOS: Record<string, string> = {
     <rect width="64" height="64" rx="16" fill="#1B4F72"/>
     <path d="M16 32 L32 20 L48 32 L32 28 Z" fill="#E67E22"/>
     <text x="32" y="54" font-family="-apple-system, sans-serif" font-size="9" font-weight="900" fill="#ffffff" text-anchor="middle">HAL</text>
+  </svg>`,
+
+  'PARASHLTH': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#0f766e"/>
+    <path d="M28 18 H36 V26 H44 V34 H36 V42 H28 V34 H20 V26 H28 Z" fill="#ffffff"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="8" font-weight="900" fill="#ffffff" text-anchor="middle">PARAS</text>
+  </svg>`,
+
+  'NTPCGREEN': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#065f46"/>
+    <circle cx="32" cy="26" r="13" fill="#10b981"/>
+    <path d="M32 17 C32 17, 38 23, 38 28 C38 32, 35 35, 32 35 C29 35, 26 32, 26 28 C26 23, 32 17, 32 17 Z" fill="#ffffff"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="7" font-weight="900" fill="#ffffff" text-anchor="middle">NTPC GREEN</text>
+  </svg>`,
+
+  'TATATECH': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#003865"/>
+    <circle cx="32" cy="26" r="12" fill="none" stroke="#38bdf8" stroke-width="2.5"/>
+    <path d="M26 26 H38 M32 20 V32" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+    <text x="32" y="54" font-family="-apple-system, sans-serif" font-size="7" font-weight="900" fill="#ffffff" text-anchor="middle">TATA TECH</text>
+  </svg>`,
+
+  'BAJAJHFL': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#0047BA"/>
+    <path d="M20 32 L32 20 L44 32 V42 H20 Z" fill="#ffffff"/>
+    <rect x="28" y="34" width="8" height="8" fill="#0047BA"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="6" font-weight="900" fill="#ffffff" text-anchor="middle">BAJAJ HOUSING</text>
+  </svg>`,
+
+  'FIRSTCRY': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#f59e0b"/>
+    <circle cx="32" cy="28" r="13" fill="#ffffff"/>
+    <circle cx="28" cy="26" r="2" fill="#f59e0b"/>
+    <circle cx="36" cy="26" r="2" fill="#f59e0b"/>
+    <path d="M28 32 Q32 36 36 32" stroke="#f59e0b" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="7" font-weight="900" fill="#ffffff" text-anchor="middle">FIRSTCRY</text>
+  </svg>`,
+
+  'OLAELEC': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#09090b"/>
+    <circle cx="32" cy="27" r="14" fill="#10b981"/>
+    <path d="M33 18 L26 29 H32 L30 38 L38 27 H32 Z" fill="#09090b"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="8" font-weight="900" fill="#ffffff" text-anchor="middle">OLA</text>
+  </svg>`,
+
+  'AFCONS': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#c2410c"/>
+    <path d="M18 40 L32 18 L46 40 M24 33 H40" stroke="#ffffff" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="8" font-weight="900" fill="#ffffff" text-anchor="middle">AFCONS</text>
+  </svg>`,
+
+  'PREMIERENE': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#1e3a8a"/>
+    <circle cx="32" cy="27" r="10" fill="#eab308"/>
+    <path d="M22 41 L32 33 L42 41" stroke="#38bdf8" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="7" font-weight="900" fill="#ffffff" text-anchor="middle">PREMIER</text>
+  </svg>`,
+
+  'BCSSL': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#334155"/>
+    <rect x="20" y="20" width="24" height="8" rx="2" fill="#94a3b8"/>
+    <rect x="28" y="28" width="8" height="14" fill="#64748b"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="8" font-weight="900" fill="#ffffff" text-anchor="middle">BCSSL</text>
+  </svg>`,
+
+  'BLSPOLY': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#0369a1"/>
+    <polygon points="32,18 42,24 42,36 32,42 22,36 22,24" stroke="#ffffff" stroke-width="2.5" fill="none"/>
+    <circle cx="32" cy="30" r="4" fill="#38bdf8"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="8" font-weight="900" fill="#ffffff" text-anchor="middle">BLS</text>
+  </svg>`,
+
+  'SFCTECH': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#047857"/>
+    <path d="M32 16 C32 16, 22 28, 22 36 C22 43, 26 47, 32 47 C38 47, 42 43, 42 36 C42 28, 32 16, 32 16 Z" fill="#34d399"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="8" font-weight="900" fill="#ffffff" text-anchor="middle">SFC</text>
+  </svg>`,
+
+  'HGSINDIALT': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#1d4ed8"/>
+    <path d="M18 32 Q25 20 32 32 T46 32" stroke="#60a5fa" stroke-width="3" fill="none"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="8" font-weight="900" fill="#ffffff" text-anchor="middle">HGS</text>
+  </svg>`,
+
+  'MAXENGS': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#b45309"/>
+    <circle cx="32" cy="27" r="11" fill="none" stroke="#fde68a" stroke-width="3" stroke-dasharray="4,2"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="7" font-weight="900" fill="#ffffff" text-anchor="middle">MAXWELL</text>
+  </svg>`,
+
+  'VPFL': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#6d28d9"/>
+    <polygon points="32,18 44,30 32,42 20,30" stroke="#c4b5fd" stroke-width="2.5" fill="none"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="7.5" font-weight="900" fill="#ffffff" text-anchor="middle">VEDANT</text>
+  </svg>`,
+
+  'MKJEWELS': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#78350f"/>
+    <polygon points="22,24 42,24 48,34 32,44 16,34" fill="#fbbf24"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="7" font-weight="900" fill="#ffffff" text-anchor="middle">MK JEWELS</text>
+  </svg>`,
+
+  'EDELALTS': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#1e3a8a"/>
+    <circle cx="32" cy="27" r="12" fill="#3b82f6"/>
+    <text x="32" y="32" font-family="-apple-system, sans-serif" font-size="12" font-weight="900" fill="#ffffff" text-anchor="middle">E</text>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="6.5" font-weight="900" fill="#ffffff" text-anchor="middle">EDELWEISS</text>
   </svg>`
 };
+
+// Aliases for IPO normalized names and common variations
+const IPO_ALIASES: Record<string, string> = {
+  'ipo:swiggy': 'SWIGGY',
+  'ipo:hyundai-motor-india': 'HYUNDAI',
+  'ipo:hyundai': 'HYUNDAI',
+  'ipo:waaree-energies': 'WAAREE',
+  'ipo:waaree': 'WAAREE',
+  'ipo:paras-healthcare': 'PARASHLTH',
+  'ipo:ntpc-green-energy': 'NTPCGREEN',
+  'ipo:tata-technologies': 'TATATECH',
+  'ipo:bajaj-housing-finance': 'BAJAJHFL',
+  'ipo:brainbees-solutions': 'FIRSTCRY',
+  'ipo:firstcry': 'FIRSTCRY',
+  'ipo:ola-electric': 'OLAELEC',
+  'ipo:afcons-infrastructure': 'AFCONS',
+  'ipo:premier-energies': 'PREMIERENE',
+  'ipo:bombay-coated-and-special-steels': 'BCSSL',
+  'ipo:bls-polymers': 'BLSPOLY',
+  'ipo:sfc-environmental-technologies': 'SFCTECH',
+  'ipo:hgs-india': 'HGSINDIALT',
+  'ipo:maxwell-engineering-solutions': 'MAXENGS',
+  'ipo:vedant-poly-fabs': 'VPFL',
+  'ipo:mk-sons-fine-jewels': 'MKJEWELS',
+  'ipo:eaaa-india-alternatives': 'EDELALTS',
+};
+
+for (const [alias, target] of Object.entries(IPO_ALIASES)) {
+  if (TOP_STOCK_LOGOS[target]) {
+    TOP_STOCK_LOGOS[alias] = TOP_STOCK_LOGOS[target];
+  }
+}
 
 export function seedLocalLogos(targetDir: string) {
   if (!fs.existsSync(targetDir)) {

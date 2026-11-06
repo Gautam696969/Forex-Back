@@ -1,6 +1,7 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Optional } from '@nestjs/common';
 import https from 'https';
 import { CentralApiService } from './central-api.service.js';
+import { LogoService } from '../logo/logo.service.js';
 
 export interface IpoItem {
   id: string;
@@ -38,7 +39,10 @@ export class NseIpoService implements OnModuleInit, OnModuleDestroy {
   private refreshTimer: NodeJS.Timeout | null = null;
   private cookieJar: string = '';
 
-  constructor(private centralApi: CentralApiService) {}
+  constructor(
+    private centralApi: CentralApiService,
+    @Optional() private logoService?: LogoService,
+  ) {}
 
   async onModuleInit() {
     this.logger.log('Initializing Real NSE IPO Service...');
@@ -273,6 +277,9 @@ export class NseIpoService implements OnModuleInit, OnModuleDestroy {
         this.cachedIpos = items;
         this.lastFetchedAt = Date.now();
         this.logger.log(`Successfully synced ${items.length} real IPOs from NSE India.`);
+        if (this.logoService) {
+          this.logoService.resolveIpoLogosBackground(items);
+        }
       }
 
       return this.cachedIpos;

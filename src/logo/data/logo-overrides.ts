@@ -300,9 +300,195 @@ export const LOGO_OVERRIDES: Record<string, { domain?: string; image_path?: stri
     "domain": "waaree.com"
   },
   "NTPCGREEN": {
-    "domain": "ntpc.co.in"
+    "domain": "ngel.in"
   },
   "ACMESOLAR": {
     "domain": "acme.in"
+  },
+  "ipo:swiggy": {
+    "domain": "swiggy.com"
+  },
+  "ipo:hyundai-motor-india": {
+    "domain": "hyundai.com"
+  },
+  "ipo:waaree-energies": {
+    "domain": "waaree.com"
+  },
+  "ipo:ntpc-green-energy": {
+    "domain": "ngel.in"
+  },
+  "TATATECH": {
+    "domain": "tatatechnologies.com"
+  },
+  "ipo:tata-technologies": {
+    "domain": "tatatechnologies.com"
+  },
+  "BAJAJHFL": {
+    "domain": "bajajhousingfinance.in"
+  },
+  "ipo:bajaj-housing-finance": {
+    "domain": "bajajhousingfinance.in"
+  },
+  "PARASHLTH": {
+    "domain": "parashealth.com"
+  },
+  "ipo:paras-healthcare": {
+    "domain": "parashealth.com"
+  },
+  "BLSPOLY": {
+    "domain": "blspolymers.com"
+  },
+  "ipo:bls-polymers": {
+    "domain": "blspolymers.com"
+  },
+  "BCSSL": {
+    "domain": "bcssl.in"
+  },
+  "ipo:bombay-coated-and-special-steels": {
+    "domain": "bcssl.in"
+  },
+  "SFCTECH": {
+    "domain": "sfctech.com"
+  },
+  "ipo:sfc-environmental-technologies": {
+    "domain": "sfctech.com"
+  },
+  "HGSINDIALT": {
+    "domain": "hgsindia.com"
+  },
+  "ipo:hgs-india": {
+    "domain": "hgsindia.com"
+  },
+  "VPFL": {
+    "domain": "vedantpolyfabs.com"
+  },
+  "ipo:vedant-poly-fabs": {
+    "domain": "vedantpolyfabs.com"
+  },
+  "MAXENGS": {
+    "domain": "maxwellengineers.com"
+  },
+  "ipo:maxwell-engineering-solutions": {
+    "domain": "maxwellengineers.com"
+  },
+  "MKJEWELS": {
+    "domain": "mkjewels.in"
+  },
+  "ipo:mk-sons-fine-jewels": {
+    "domain": "mkjewels.in"
+  },
+  "EDELALTS": {
+    "domain": "edelweissalt.com"
+  },
+  "ipo:eaaa-india-alternatives": {
+    "domain": "edelweissalt.com"
+  },
+  "SRIT": {
+    "domain": "sritindia.com"
+  },
+  "ipo:srit-india": {
+    "domain": "sritindia.com"
+  },
+  "SHAHINVEST": {
+    "domain": "sihl.in"
+  },
+  "ipo:shah-investors-home": {
+    "domain": "sihl.in"
+  },
+  "ACEVECTOR": {
+    "domain": "acevectorgroup.com"
+  },
+  "ipo:acevector": {
+    "domain": "acevectorgroup.com"
+  },
+  "RUNWALENTR": {
+    "domain": "runwal.com"
+  },
+  "ipo:runwal-enterprises": {
+    "domain": "runwal.com"
+  },
+  "ORIENTCABL": {
+    "domain": "orientcables.com"
+  },
+  "ipo:orient-cables-india": {
+    "domain": "orientcables.com"
+  },
+  "GERMAN": {
+    "domain": "germangreensteel.com"
+  },
+  "ipo:german-green-steel-and-power": {
+    "domain": "germangreensteel.com"
+  },
+  "EVENTIONS": {
+    "domain": "eventions.in"
+  },
+  "ipo:eventions": {
+    "domain": "eventions.in"
+  },
+  "PAPADMALJI": {
+    "domain": "papadmalji.com"
+  },
+  "ipo:papadmalji-agro-foods": {
+    "domain": "papadmalji.com"
+  },
+  "FIRSTCRY": {
+    "domain": "firstcry.com"
+  },
+  "ipo:brainbees-solutions": {
+    "domain": "firstcry.com"
+  },
+  "OLAELEC": {
+    "domain": "olaelectric.com"
+  },
+  "ipo:ola-electric": {
+    "domain": "olaelectric.com"
+  },
+  "AFCONS": {
+    "domain": "afcons.com"
+  },
+  "ipo:afcons-infrastructure": {
+    "domain": "afcons.com"
+  },
+  "PREMIERENE": {
+    "domain": "premierenergies.com"
+  },
+  "ipo:premier-energies": {
+    "domain": "premierenergies.com"
+  },
+  "KRNHEAT": {
+    "domain": "krnheatexchanger.com"
+  },
+  "ipo:krn-heat-exchanger": {
+    "domain": "krnheatexchanger.com"
+  },
+  "NORTHARC": {
+    "domain": "northernarc.com"
+  },
+  "ipo:northern-arc-capital": {
+    "domain": "northernarc.com"
+  },
+  "MANBA": {
+    "domain": "manbafinance.com"
+  },
+  "ipo:manba-finance": {
+    "domain": "manbafinance.com"
+  },
+  "WESTERN": {
+    "domain": "westerncarriers.in"
+  },
+  "ipo:western-carriers": {
+    "domain": "westerncarriers.in"
+  },
+  "ARKADE": {
+    "domain": "arkade.in"
+  },
+  "ipo:arkade-developers": {
+    "domain": "arkade.in"
+  },
+  "JNKINDIA": {
+    "domain": "jnkindia.com"
+  },
+  "ipo:jnk-india": {
+    "domain": "jnkindia.com"
   }
 };
