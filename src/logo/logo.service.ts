@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma.service.js';
 import { CUSTOM_FOURX_ICONS } from './data/custom-icons.js';
+import { TOP_STOCK_LOGOS } from './data/seed-logos.js';
+import { LOGO_OVERRIDES } from './data/logo-overrides.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -15,13 +17,34 @@ function getISTTimeString(): string {
   return new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false }) + ' IST';
 }
 
+const SYMBOL_ALIASES: Record<string, string> = {
+  'MM': 'M&M',
+  'MAHINDRA': 'M&M',
+  'BAJAJFINANCE': 'BAJFINANCE',
+  'BAJAJ_FINANCE': 'BAJFINANCE',
+  'TATAMOTOR': 'TATAMOTORS',
+  'HDFC': 'HDFCBANK',
+  'KOTAK': 'KOTAKBANK',
+  'AIRTEL': 'BHARTIARTL',
+  'BHARTI': 'BHARTIARTL',
+  'SBI': 'SBIN',
+  'STATEBANK': 'SBIN',
+  'MARUTISUZUKI': 'MARUTI',
+  'INFOSYS': 'INFY',
+  'HINDUNILEVER': 'HINDUNILVR',
+  'HUL': 'HINDUNILVR',
+  'ASIANPAINTS': 'ASIANPAINT',
+  'TITANCOMPANY': 'TITAN',
+  'SUNPHARMACEUTICAL': 'SUNPHARMA',
+};
+
 interface LogoOverrideEntry {
   domain?: string;
   image_path?: string;
 }
 
 @Injectable()
-export class LogoService {
+export class LogoService implements OnModuleInit {
   private overrides: Record<string, LogoOverrideEntry> = {};
   private storageDir: string;
 
@@ -33,16 +56,34 @@ export class LogoService {
     this.loadOverrides();
   }
 
+  async onModuleInit() {
+    // Ensure all built-in top stock logos and indices have status 'found' in DB
+    try {
+      const topSymbols = [...Object.keys(CUSTOM_FOURX_ICONS), ...Object.keys(TOP_STOCK_LOGOS)];
+      await this.prisma.companyLogo.updateMany({
+        where: {
+          symbol: { in: topSymbols },
+          status: 'missing',
+        },
+        data: {
+          status: 'found',
+        },
+      });
+    } catch {}
+  }
+
   private loadOverrides() {
+    // Load compiled in-memory overrides first
+    this.overrides = { ...LOGO_OVERRIDES };
+
     try {
       const overridesPath = path.resolve(__dirname, 'data/logo-overrides.json');
       if (fs.existsSync(overridesPath)) {
         const raw = fs.readFileSync(overridesPath, 'utf-8');
-        this.overrides = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        this.overrides = { ...this.overrides, ...parsed };
       }
-    } catch (err: any) {
-      console.error(`Failed to load logo overrides: ${err.message}`);
-    }
+    } catch {}
   }
 
   private logFailure(symbol: string, domain: string | null, reason: string) {
@@ -53,12 +94,19 @@ export class LogoService {
   }
 
   /**
-   * Resolve company domain from symbol via overrides or Yahoo Finance
+   * Resolve company domain from symbol via overrides, DB cache or Yahoo Finance
    */
-  async resolveDomain(symbol: string): Promise<string | null> {
-    const norm = symbol.toUpperCase().trim();
+  async resolveDomain(rawSymbol: string): Promise<string | null> {
+    let norm = (rawSymbol || '').toUpperCase().trim();
+    if (SYMBOL_ALIASES[norm]) {
+      norm = SYMBOL_ALIASES[norm];
+    }
+
     if (this.overrides[norm]?.domain) {
       return this.overrides[norm].domain!;
+    }
+    if (LOGO_OVERRIDES[norm]?.domain) {
+      return LOGO_OVERRIDES[norm].domain!;
     }
 
     // Check database company_logos cache
@@ -97,12 +145,14 @@ export class LogoService {
    * Get logo image buffer and content type for a symbol
    */
   async getLogo(rawSymbol: string): Promise<{ buffer: Buffer; contentType: string }> {
-    const symbol = rawSymbol.toUpperCase().trim();
+    let symbol = (rawSymbol || '').toUpperCase().trim();
+    if (SYMBOL_ALIASES[symbol]) {
+      symbol = SYMBOL_ALIASES[symbol];
+    }
 
     // 1. Check FourX-styled custom SVG icons (Indices & Commodities)
     if (CUSTOM_FOURX_ICONS[symbol]) {
       const svg = CUSTOM_FOURX_ICONS[symbol];
-      // Update database status in background
       this.prisma.companyLogo
         .upsert({
           where: { symbol },
@@ -116,7 +166,24 @@ export class LogoService {
       };
     }
 
-    // 2. Check local disk cache (storage/logos/<symbol>.png or .svg)
+    // 2. Check Top Indian Stock Verified SVG Vectors (Compiled in-memory, works across any server/environment)
+    if (TOP_STOCK_LOGOS[symbol]) {
+      const svg = TOP_STOCK_LOGOS[symbol];
+      const domain = this.overrides[symbol]?.domain || LOGO_OVERRIDES[symbol]?.domain || null;
+      this.prisma.companyLogo
+        .upsert({
+          where: { symbol },
+          update: { source: 'verified_seed_svg', status: 'found', domain: domain ?? undefined },
+          create: { symbol, source: 'verified_seed_svg', status: 'found', domain },
+        })
+        .catch(() => {});
+      return {
+        buffer: Buffer.from(svg, 'utf-8'),
+        contentType: 'image/svg+xml',
+      };
+    }
+
+    // 3. Check local disk cache (storage/logos/<symbol>.png or .svg)
     const cachedFiles = [
       path.join(this.storageDir, `${symbol}.png`),
       path.join(this.storageDir, `${symbol}.svg`),
@@ -135,7 +202,7 @@ export class LogoService {
       }
     }
 
-    // Check if symbol was already marked missing in database
+    // 4. Check if symbol was marked missing in database
     try {
       const existing = await this.prisma.companyLogo.findUnique({
         where: { symbol },
@@ -155,7 +222,7 @@ export class LogoService {
       if (err instanceof NotFoundException) throw err;
     }
 
-    // 3. Resolve Domain
+    // 5. Resolve Domain
     const domain = await this.resolveDomain(symbol);
     if (!domain) {
       this.logFailure(symbol, null, 'Domain could not be resolved from Yahoo Finance or overrides');
@@ -173,7 +240,7 @@ export class LogoService {
       });
     }
 
-    // 4. Fetch from Logo Provider (Logo.dev / Brandfetch)
+    // 6. Fetch from Logo Provider (Logo.dev / Brandfetch)
     const apiKey = (process.env.LOGO_API_KEY || '').trim();
     if (!apiKey) {
       this.logFailure(symbol, domain, 'LOGO_API_KEY missing or not configured in .env');
@@ -296,7 +363,10 @@ export class LogoService {
    * Preload or store a logo locally (e.g. from sync script or seed)
    */
   async saveLocalLogo(symbol: string, domain: string, buffer: Buffer, source: string, ext = 'png') {
-    const norm = symbol.toUpperCase().trim();
+    let norm = (symbol || '').toUpperCase().trim();
+    if (SYMBOL_ALIASES[norm]) {
+      norm = SYMBOL_ALIASES[norm];
+    }
     const savePath = path.join(this.storageDir, `${norm}.${ext}`);
     fs.writeFileSync(savePath, buffer);
 
