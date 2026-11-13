@@ -41,7 +41,11 @@ let AllExceptionsFilter = class AllExceptionsFilter {
         const url = request.originalUrl || request.url || '';
         const cleanPath = url.split('?')[0].replace(/^\/api\//, '').replace(/^\//, '');
         const apiName = cleanPath.replace(/\//g, '.') || 'root';
-        console.error(`\x1b[31m[API FAILED] ${istTime} api=${apiName} ${duration}ms status=${status} reason=${reason} url=${url}\x1b[0m`);
+        const isExpectedAuthProbe = status === HttpStatus.UNAUTHORIZED &&
+            (apiName.startsWith('auth.') || apiName === 'auth' || url.includes('/auth/'));
+        if (!isExpectedAuthProbe) {
+            console.error(`\x1b[31m[API FAILED] ${istTime} api=${apiName} ${duration}ms status=${status} reason=${reason} url=${url}\x1b[0m`);
+        }
         if (status >= 500 && exception instanceof Error && exception.stack) {
             console.error(`\x1b[31m[STACK TRACE for ${apiName}]\x1b[0m\n${exception.stack}`);
         }

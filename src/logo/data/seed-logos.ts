@@ -375,6 +375,62 @@ export const TOP_STOCK_LOGOS: Record<string, string> = {
     <circle cx="32" cy="27" r="12" fill="#3b82f6"/>
     <text x="32" y="32" font-family="-apple-system, sans-serif" font-size="12" font-weight="900" fill="#ffffff" text-anchor="middle">E</text>
     <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="6.5" font-weight="900" fill="#ffffff" text-anchor="middle">EDELWEISS</text>
+  </svg>`,
+
+  'SMCGLOBAL': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#0f172a"/>
+    <path d="M18 36 C24 22, 40 22, 46 36" stroke="#f97316" stroke-width="3" fill="none"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="8" font-weight="900" fill="#ffffff" text-anchor="middle">SMC</text>
+  </svg>`,
+
+  'VNL': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#1e293b"/>
+    <line x1="18" y1="26" x2="46" y2="26" stroke="#38bdf8" stroke-width="2"/>
+    <line x1="18" y1="34" x2="46" y2="34" stroke="#38bdf8" stroke-width="2"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="8" font-weight="900" fill="#ffffff" text-anchor="middle">VNL</text>
+  </svg>`,
+
+  'NITYAS': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#064e3b"/>
+    <polygon points="32,16 46,28 32,40 18,28" stroke="#34d399" stroke-width="2" fill="none"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="7" font-weight="900" fill="#ffffff" text-anchor="middle">NITYA'S</text>
+  </svg>`,
+
+  'ACEVECTOR': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#b91c1c"/>
+    <polygon points="32,18 46,42 18,42" fill="#ffffff"/>
+    <polygon points="32,26 40,40 24,40" fill="#b91c1c"/>
+    <text x="32" y="56" font-family="-apple-system, sans-serif" font-size="6.5" font-weight="900" fill="#ffffff" text-anchor="middle">ACEVECTOR</text>
+  </svg>`,
+
+  'SRIT': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#1e3a8a"/>
+    <circle cx="32" cy="27" r="10" stroke="#60a5fa" stroke-width="2" fill="none"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="8" font-weight="900" fill="#ffffff" text-anchor="middle">SRIT</text>
+  </svg>`,
+
+  'SHAHINVEST': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#881337"/>
+    <circle cx="32" cy="27" r="10" fill="#f43f5e"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="8" font-weight="900" fill="#ffffff" text-anchor="middle">SIHL</text>
+  </svg>`,
+
+  'PAPADMALJI': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#b45309"/>
+    <circle cx="32" cy="27" r="12" fill="#fde68a"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="6" font-weight="900" fill="#ffffff" text-anchor="middle">PAPADMALJI</text>
+  </svg>`,
+
+  'EVENTIONS': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#6b21a8"/>
+    <circle cx="32" cy="27" r="10" fill="#d8b4fe"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="6.5" font-weight="900" fill="#ffffff" text-anchor="middle">EVENTIONS</text>
+  </svg>`,
+
+  'RKFAL': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#be185d"/>
+    <circle cx="32" cy="27" r="10" fill="#fbcfe8"/>
+    <text x="32" y="55" font-family="-apple-system, sans-serif" font-size="8" font-weight="900" fill="#ffffff" text-anchor="middle">RKF</text>
   </svg>`
 };
 
@@ -397,11 +453,24 @@ const IPO_ALIASES: Record<string, string> = {
   'ipo:bombay-coated-and-special-steels': 'BCSSL',
   'ipo:bls-polymers': 'BLSPOLY',
   'ipo:sfc-environmental-technologies': 'SFCTECH',
+  'ipo:sfc-environmental': 'SFCTECH',
   'ipo:hgs-india': 'HGSINDIALT',
   'ipo:maxwell-engineering-solutions': 'MAXENGS',
+  'ipo:maxwell-engineering': 'MAXENGS',
   'ipo:vedant-poly-fabs': 'VPFL',
   'ipo:mk-sons-fine-jewels': 'MKJEWELS',
+  'ipo:m-k-sons-fine-jewels': 'MKJEWELS',
   'ipo:eaaa-india-alternatives': 'EDELALTS',
+  'SMCG04': 'SMCGLOBAL',
+  'ipo:smc-global-securities': 'SMCGLOBAL',
+  'ipo:r-k-fashion-accessories': 'RKFAL',
+  'ipo:nityas-gems-and-jewellery': 'NITYAS',
+  'ipo:vishal-nirmiti': 'VNL',
+  'ipo:eventions': 'EVENTIONS',
+  'ipo:papadmalji-agro-foods': 'PAPADMALJI',
+  'ipo:srit-india': 'SRIT',
+  'ipo:shah-investor-s-home': 'SHAHINVEST',
+  'ipo:acevector': 'ACEVECTOR',
 };
 
 for (const [alias, target] of Object.entries(IPO_ALIASES)) {

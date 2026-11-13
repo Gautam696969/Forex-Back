@@ -52,11 +52,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const cleanPath = url.split('?')[0].replace(/^\/api\//, '').replace(/^\//, '');
     const apiName = cleanPath.replace(/\//g, '.') || 'root';
 
+    // Normal client 401 unauthorized checks for guest / unauthenticated sessions
+    // should not spam terminal as server errors [API FAILED]
+    const isExpectedAuthProbe =
+      status === HttpStatus.UNAUTHORIZED &&
+      (apiName.startsWith('auth.') || apiName === 'auth' || url.includes('/auth/'));
+
     // Strict red terminal failure log
     // Format: [API FAILED] <time IST> api=<name> <ms>ms status=<code> reason=<message> url=<url>
-    console.error(
-      `\x1b[31m[API FAILED] ${istTime} api=${apiName} ${duration}ms status=${status} reason=${reason} url=${url}\x1b[0m`,
-    );
+    if (!isExpectedAuthProbe) {
+      console.error(
+        `\x1b[31m[API FAILED] ${istTime} api=${apiName} ${duration}ms status=${status} reason=${reason} url=${url}\x1b[0m`,
+      );
+    }
 
     // If 500 server error, print full stack trace
     if (status >= 500 && exception instanceof Error && exception.stack) {

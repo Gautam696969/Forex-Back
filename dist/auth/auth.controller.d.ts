@@ -105,25 +105,7 @@ export declare class AuthController {
         user?: undefined;
         tokens?: undefined;
     }>;
-    refresh(req: ExpressRequest, bodyRefreshToken: string, res: Response): Promise<{
-        success: boolean;
-        user: {
-            id: any;
-            name: any;
-            fullName: any;
-            email: any;
-            mobile: any;
-            phone: any;
-            isVerified: any;
-            kycStatus: any;
-            demoBalance: any;
-            role: any;
-            account: any;
-        };
-        token: string;
-        accessToken: string;
-        refreshToken: string;
-    }>;
+    refresh(req: ExpressRequest, bodyRefreshToken: string, res: Response): Promise<Response<any, Record<string, any>>>;
     logout(req: ExpressRequest, bodyRefreshToken: string, res: Response): Promise<{
         success: boolean;
         message: string;

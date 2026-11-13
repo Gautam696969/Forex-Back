@@ -88,15 +88,24 @@ let AuthController = class AuthController {
     }
     async refresh(req, bodyRefreshToken, res) {
         const rawToken = (req.cookies && req.cookies['refresh_token']) || bodyRefreshToken;
-        const result = await this.authService.refreshAccessToken(rawToken);
+        if (!rawToken || typeof rawToken !== 'string' || !rawToken.trim()) {
+            return res.status(HttpStatus.UNAUTHORIZED).json({
+                ok: false,
+                statusCode: HttpStatus.UNAUTHORIZED,
+                api: 'auth.refresh',
+                error: 'Refresh token is required',
+                message: 'No active session or refresh token provided',
+            });
+        }
+        const result = await this.authService.refreshAccessToken(rawToken.trim());
         this.setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
-        return {
+        return res.status(HttpStatus.OK).json({
             success: true,
             user: result.user,
             token: result.tokens.accessToken,
             accessToken: result.tokens.accessToken,
             refreshToken: result.tokens.refreshToken,
-        };
+        });
     }
     async logout(req, bodyRefreshToken, res) {
         const rawToken = (req.cookies && req.cookies['refresh_token']) || bodyRefreshToken;

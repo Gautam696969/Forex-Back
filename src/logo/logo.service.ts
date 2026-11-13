@@ -282,11 +282,25 @@ export class LogoService implements OnModuleInit {
           const sym = ipo.symbol?.trim();
           const name = ipo.companyName?.trim();
           if (sym) {
-            await this.getLogo(sym).catch(() => {});
+            const upperSym = sym.toUpperCase();
+            const exists = await this.prisma.companyLogo.findUnique({
+              where: { symbol: upperSym },
+              select: { status: true },
+            }).catch(() => null);
+            if (!exists) {
+              await this.getLogo(sym).catch(() => {});
+            }
           }
           if (name) {
             const ipoKey = normalizeIpoKey(name);
-            await this.getLogo(ipoKey).catch(() => {});
+            const upperKey = ipoKey.toUpperCase();
+            const exists = await this.prisma.companyLogo.findUnique({
+              where: { symbol: upperKey },
+              select: { status: true },
+            }).catch(() => null);
+            if (!exists) {
+              await this.getLogo(ipoKey).catch(() => {});
+            }
           }
         } catch {}
       }
@@ -379,10 +393,6 @@ export class LogoService implements OnModuleInit {
         where: { symbol: upperSymbol },
       });
       if (existing?.status === 'missing') {
-        const reason = existing.domain
-          ? 'Provider logo unavailable or LOGO_API_KEY not configured'
-          : 'Domain not resolvable';
-        this.logFailure(symbol, existing.domain || null, reason, Date.now() - startTime);
         throw new NotFoundException({
           ok: false,
           api: 'logo',
