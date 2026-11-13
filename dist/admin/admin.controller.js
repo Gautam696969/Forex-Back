@@ -29,8 +29,20 @@ let AdminController = class AdminController {
     async adjustBalance(req, targetUserId, body) {
         return this.adminService.adjustUserBalance(req.user.id, req.user.email, targetUserId, body.amount, body.reason);
     }
+    async adjustBalanceAlias(req, body) {
+        return this.adminService.adjustUserBalance(req.user.id, req.user.email, body.userId, body.amount, body.reason);
+    }
     async resetUser(req, targetUserId, body) {
         return this.adminService.resetUserDemoAccount(req.user.id, req.user.email, targetUserId, body.reason);
+    }
+    async resetUserAlias(req, body) {
+        return this.adminService.resetUserDemoAccount(req.user.id, req.user.email, body.userId, body.reason);
+    }
+    async updateUserKyc(req, targetUserId, body) {
+        return this.adminService.updateUserKyc(req.user.id, req.user.email, targetUserId, body.kycStatus);
+    }
+    async updateUserRole(req, targetUserId, body) {
+        return this.adminService.updateUserRole(req.user.id, req.user.email, targetUserId, body.role);
     }
     async updatePair(req, pairId, body) {
         return this.adminService.updatePairSettings(req.user.id, req.user.email, pairId, body);
@@ -40,6 +52,18 @@ let AdminController = class AdminController {
     }
     async getAllPositions() {
         return this.adminService.getAllPositions();
+    }
+    async closePositionForce(req, positionId, body) {
+        return this.adminService.closePositionForce(req.user.id, req.user.email, positionId, body.reason || 'Admin manual square-off');
+    }
+    async getAdminIpos() {
+        return this.adminService.getAdminIpos();
+    }
+    async updateAdminIpo(req, ipoId, body) {
+        return this.adminService.updateAdminIpo(req.user.id, req.user.email, ipoId, body);
+    }
+    async getAdminIpoApplications() {
+        return this.adminService.getAdminIpoApplications();
     }
 };
 __decorate([
@@ -64,6 +88,14 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "adjustBalance", null);
 __decorate([
+    Post('balance/adjust'),
+    __param(0, Request()),
+    __param(1, Body()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "adjustBalanceAlias", null);
+__decorate([
     Post('users/:id/reset'),
     __param(0, Request()),
     __param(1, Param('id')),
@@ -72,6 +104,32 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "resetUser", null);
+__decorate([
+    Post('balance/reset'),
+    __param(0, Request()),
+    __param(1, Body()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "resetUserAlias", null);
+__decorate([
+    Patch('users/:id/kyc'),
+    __param(0, Request()),
+    __param(1, Param('id')),
+    __param(2, Body()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "updateUserKyc", null);
+__decorate([
+    Patch('users/:id/role'),
+    __param(0, Request()),
+    __param(1, Param('id')),
+    __param(2, Body()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "updateUserRole", null);
 __decorate([
     Patch('pairs/:id'),
     __param(0, Request()),
@@ -93,6 +151,36 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getAllPositions", null);
+__decorate([
+    Post('positions/:id/close'),
+    __param(0, Request()),
+    __param(1, Param('id')),
+    __param(2, Body()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "closePositionForce", null);
+__decorate([
+    Get('ipos'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getAdminIpos", null);
+__decorate([
+    Patch('ipos/:id'),
+    __param(0, Request()),
+    __param(1, Param('id')),
+    __param(2, Body()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "updateAdminIpo", null);
+__decorate([
+    Get('ipo-applications'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getAdminIpoApplications", null);
 AdminController = __decorate([
     UseGuards(JwtAuthGuard, RolesGuard),
     Roles('ADMIN'),

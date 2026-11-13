@@ -15,6 +15,10 @@ export declare class AdminController {
         id: string;
         name: string;
         email: string;
+        mobile: string;
+        pan: string | null;
+        isVerified: boolean;
+        kycStatus: string;
         role: string;
         createdAt: Date;
         accountNumber: string | undefined;
@@ -26,6 +30,29 @@ export declare class AdminController {
         totalPnl: number;
     }[]>;
     adjustBalance(req: any, targetUserId: string, body: {
+        amount: number;
+        reason: string;
+    }): Promise<{
+        success: boolean;
+        account: {
+            id: string;
+            accountNumber: string;
+            balance: number;
+            equity: number;
+            usedMargin: number;
+            freeMargin: number;
+            marginLevel: number;
+            currency: string;
+            leverage: number;
+            isDemo: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+        };
+        message: string;
+    }>;
+    adjustBalanceAlias(req: any, body: {
+        userId: string;
         amount: number;
         reason: string;
     }): Promise<{
@@ -67,6 +94,66 @@ export declare class AdminController {
             userId: string;
         };
         message: string;
+    }>;
+    resetUserAlias(req: any, body: {
+        userId: string;
+        reason: string;
+    }): Promise<{
+        success: boolean;
+        account: {
+            id: string;
+            accountNumber: string;
+            balance: number;
+            equity: number;
+            usedMargin: number;
+            freeMargin: number;
+            marginLevel: number;
+            currency: string;
+            leverage: number;
+            isDemo: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+        };
+        message: string;
+    }>;
+    updateUserKyc(req: any, targetUserId: string, body: {
+        kycStatus: string;
+    }): Promise<{
+        success: boolean;
+        user: {
+            email: string;
+            mobile: string;
+            pan: string | null;
+            id: string;
+            full_name: string;
+            password_hash: string;
+            is_verified: boolean;
+            kyc_status: string;
+            demo_balance: number;
+            created_at: Date;
+            updated_at: Date;
+            role: string;
+        };
+    }>;
+    updateUserRole(req: any, targetUserId: string, body: {
+        role: string;
+    }): Promise<{
+        success: boolean;
+        user: {
+            email: string;
+            mobile: string;
+            pan: string | null;
+            id: string;
+            full_name: string;
+            password_hash: string;
+            is_verified: boolean;
+            kyc_status: string;
+            demo_balance: number;
+            created_at: Date;
+            updated_at: Date;
+            role: string;
+        };
     }>;
     updatePair(req: any, pairId: string, body: {
         defaultSpread?: number;
@@ -116,7 +203,7 @@ export declare class AdminController {
         targetUser: {
             email: string;
             id: string;
-            name: never;
+            full_name: string;
         } | null;
     } & {
         reason: string;
@@ -132,7 +219,9 @@ export declare class AdminController {
         account: {
             user: {
                 email: string;
-                name: never;
+                mobile: string;
+                id: string;
+                full_name: string;
             };
         } & {
             id: string;
@@ -170,5 +259,114 @@ export declare class AdminController {
         commission: number;
         openedAt: Date;
         closedAt: Date | null;
+    })[]>;
+    closePositionForce(req: any, positionId: string, body: {
+        reason?: string;
+    }): Promise<{
+        success: boolean;
+        message: string;
+        result: {
+            success: boolean;
+            trade: {
+                symbol: string;
+                id: string;
+                type: string;
+                lots: number;
+                stopLoss: number | null;
+                takeProfit: number | null;
+                productType: string;
+                accountId: string;
+                swap: number;
+                commission: number;
+                openedAt: Date;
+                closedAt: Date;
+                positionId: string;
+                openPrice: number;
+                closePrice: number;
+                realizedPnl: number;
+                realizedPips: number;
+                closeReason: string;
+            };
+            realizedPnl: number;
+            message: string;
+        };
+    }>;
+    getAdminIpos(): Promise<({
+        _count: {
+            applications: number;
+        };
+    } & {
+        symbol: string;
+        status: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        category: string;
+        about: string | null;
+        companyName: string;
+        priceBand: string;
+        minPrice: number;
+        maxPrice: number;
+        lotSize: number;
+        issueSize: string;
+        openDate: Date;
+        closeDate: Date;
+        listingDate: Date | null;
+        gmp: number | null;
+        subscriptionRate: number;
+    })[]>;
+    updateAdminIpo(req: any, ipoId: string, body: {
+        gmp?: number;
+        status?: string;
+        priceBand?: string;
+        subscriptionRate?: number;
+    }): Promise<{
+        success: boolean;
+        ipo: {
+            symbol: string;
+            status: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            category: string;
+            about: string | null;
+            companyName: string;
+            priceBand: string;
+            minPrice: number;
+            maxPrice: number;
+            lotSize: number;
+            issueSize: string;
+            openDate: Date;
+            closeDate: Date;
+            listingDate: Date | null;
+            gmp: number | null;
+            subscriptionRate: number;
+        };
+    }>;
+    getAdminIpoApplications(): Promise<({
+        user: {
+            email: string;
+            mobile: string;
+            id: string;
+            full_name: string;
+        };
+        ipo: {
+            symbol: string;
+            id: string;
+            category: string;
+            companyName: string;
+            priceBand: string;
+        };
+    } & {
+        status: string;
+        id: string;
+        userId: string;
+        lots: number;
+        shares: number;
+        bidPrice: number;
+        totalAmount: number;
+        upiId: string;
+        appliedAt: Date;
+        ipoId: string;
     })[]>;
 }
