@@ -28,6 +28,13 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty({ message: 'Confirm password is required' })
   confirmPassword!: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, {
+    message: 'PAN must be in valid 10-character Indian format (e.g. ABCDE1234F)',
+  })
+  pan?: string;
 }
 
 export class LoginDto {
@@ -93,4 +100,24 @@ export class ResetPasswordDto {
   })
   newPassword!: string;
 }
+
+export class ResetPasswordOtpDto {
+  @IsString()
+  @IsNotEmpty({ message: 'Mobile number or email is required' })
+  identifier!: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'OTP is required' })
+  @Length(6, 6, { message: 'OTP must be exactly 6 digits' })
+  otp!: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'New password is required' })
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @Matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/, {
+    message: 'Password must contain at least one letter, one number, and one symbol',
+  })
+  newPassword!: string;
+}
+
 

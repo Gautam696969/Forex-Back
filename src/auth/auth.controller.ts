@@ -20,6 +20,7 @@ import {
   VerifyOtpDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  ResetPasswordOtpDto,
 } from './dto/auth.dto.js';
 import type { Response, Request as ExpressRequest } from 'express';
 
@@ -186,5 +187,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() body: ResetPasswordDto) {
     return this.authService.resetPassword(body);
+  }
+
+  @Post('reset-password-otp')
+  @HttpCode(HttpStatus.OK)
+  async resetPasswordOtp(@Body() body: ResetPasswordOtpDto) {
+    return this.authService.resetPasswordWithOtp(body);
   }
 }

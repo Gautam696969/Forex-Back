@@ -1,5 +1,5 @@
 import { AuthService } from './auth.service.js';
-import { RegisterDto, LoginDto, SendOtpDto, SendEmailOtpDto, VerifyOtpDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto.js';
+import { RegisterDto, LoginDto, SendOtpDto, SendEmailOtpDto, VerifyOtpDto, ForgotPasswordDto, ResetPasswordDto, ResetPasswordOtpDto } from './dto/auth.dto.js';
 import type { Response, Request as ExpressRequest } from 'express';
 export declare class AuthController {
     private authService;
@@ -141,6 +141,10 @@ export declare class AuthController {
         message: string;
     }>;
     resetPassword(body: ResetPasswordDto): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    resetPasswordOtp(body: ResetPasswordOtpDto): Promise<{
         success: boolean;
         message: string;
     }>;

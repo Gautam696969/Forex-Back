@@ -14,6 +14,7 @@ export class RegisterDto {
     mobile;
     password;
     confirmPassword;
+    pan;
 }
 __decorate([
     IsString(),
@@ -48,6 +49,14 @@ __decorate([
     IsNotEmpty({ message: 'Confirm password is required' }),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "confirmPassword", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    Matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, {
+        message: 'PAN must be in valid 10-character Indian format (e.g. ABCDE1234F)',
+    }),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "pan", void 0);
 export class LoginDto {
     identifier;
     password;
@@ -134,4 +143,29 @@ __decorate([
     }),
     __metadata("design:type", String)
 ], ResetPasswordDto.prototype, "newPassword", void 0);
+export class ResetPasswordOtpDto {
+    identifier;
+    otp;
+    newPassword;
+}
+__decorate([
+    IsString(),
+    IsNotEmpty({ message: 'Mobile number or email is required' }),
+    __metadata("design:type", String)
+], ResetPasswordOtpDto.prototype, "identifier", void 0);
+__decorate([
+    IsString(),
+    IsNotEmpty({ message: 'OTP is required' }),
+    Length(6, 6, { message: 'OTP must be exactly 6 digits' }),
+    __metadata("design:type", String)
+], ResetPasswordOtpDto.prototype, "otp", void 0);
+__decorate([
+    IsString(),
+    IsNotEmpty({ message: 'New password is required' }),
+    MinLength(8, { message: 'Password must be at least 8 characters long' }),
+    Matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/, {
+        message: 'Password must contain at least one letter, one number, and one symbol',
+    }),
+    __metadata("design:type", String)
+], ResetPasswordOtpDto.prototype, "newPassword", void 0);
 //# sourceMappingURL=auth.dto.js.map

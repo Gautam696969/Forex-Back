@@ -68,6 +68,7 @@ export class AuthService {
         full_name: dto.fullName.trim(),
         email: cleanEmail,
         mobile: cleanMobile,
+        pan: dto.pan ? dto.pan.toUpperCase().trim() : undefined,
         password_hash,
         is_verified: false,
         kyc_status: 'pending',
@@ -497,6 +498,78 @@ export class AuthService {
     return {
       success: true,
       message: 'Password reset successfully. You can now login with your new password.',
+    };
+  }
+
+  /**
+   * Reset password directly with verified 6-digit OTP
+   */
+  async resetPasswordWithOtp(dto: { identifier: string; otp: string; newPassword: string }) {
+    const targetIdentifier = dto.identifier.includes('@')
+      ? dto.identifier.toLowerCase().trim()
+      : dto.identifier.replace(/\D/g, '').trim();
+
+    if (!targetIdentifier) {
+      throw new BadRequestException('Valid mobile number or email is required');
+    }
+
+    const otpHash = this.hashToken(dto.otp.trim());
+
+    const activeOtp = await this.prisma.otp.findFirst({
+      where: {
+        mobile: targetIdentifier,
+        expires_at: { gt: new Date() },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    if (!activeOtp) {
+      throw new UnauthorizedException('OTP has expired or does not exist. Please request a new OTP.');
+    }
+
+    if (activeOtp.attempts >= 3) {
+      await this.prisma.otp.delete({ where: { id: activeOtp.id } });
+      throw new UnauthorizedException('Maximum OTP attempts exceeded. Please request a new OTP.');
+    }
+
+    if (activeOtp.otp_hash !== otpHash) {
+      await this.prisma.otp.update({
+        where: { id: activeOtp.id },
+        data: { attempts: activeOtp.attempts + 1 },
+      });
+      throw new UnauthorizedException('Invalid OTP. Please check and try again.');
+    }
+
+    // OTP matched: delete OTP
+    await this.prisma.otp.delete({ where: { id: activeOtp.id } });
+
+    // Find user
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ mobile: targetIdentifier }, { email: targetIdentifier }],
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('No user account found matching this mobile number or email');
+    }
+
+    const password_hash = await bcrypt.hash(dto.newPassword, 12);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { password_hash, is_verified: true },
+    });
+
+    // Invalidate old sessions
+    await this.prisma.refreshToken.updateMany({
+      where: { user_id: user.id },
+      data: { revoked: true },
+    });
+
+    return {
+      success: true,
+      message: 'Password reset successfully with mobile OTP. Please sign in.',
     };
   }
 

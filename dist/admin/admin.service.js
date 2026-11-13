@@ -11,14 +11,17 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma.service.js';
 import { ForexEngineService } from '../market/forex-engine.service.js';
 import { MarketGateway } from '../market/market.gateway.js';
+import { TradingService } from '../trading/trading.service.js';
 let AdminService = class AdminService {
     prisma;
     forexEngine;
     marketGateway;
-    constructor(prisma, forexEngine, marketGateway) {
+    tradingService;
+    constructor(prisma, forexEngine, marketGateway, tradingService) {
         this.prisma = prisma;
         this.forexEngine = forexEngine;
         this.marketGateway = marketGateway;
+        this.tradingService = tradingService;
     }
     async getAdminStats() {
         const totalUsers = await this.prisma.user.count({ where: { role: 'USER' } });
@@ -64,6 +67,10 @@ let AdminService = class AdminService {
                 id: u.id,
                 name: u.full_name,
                 email: u.email,
+                mobile: u.mobile,
+                pan: u.pan,
+                isVerified: u.is_verified,
+                kycStatus: u.kyc_status,
                 role: u.role,
                 createdAt: u.created_at,
                 accountNumber: u.account?.accountNumber,
@@ -126,7 +133,7 @@ let AdminService = class AdminService {
         return {
             success: true,
             account: updatedAccount,
-            message: `Balance adjusted successfully. New balance: $${balanceAfter}`,
+            message: `Balance adjusted successfully. New balance: ₹${balanceAfter}`,
         };
     }
     async resetUserDemoAccount(adminId, adminEmail, targetUserId, reason) {
@@ -145,15 +152,15 @@ let AdminService = class AdminService {
             data: { status: 'CLOSED', closedAt: new Date() },
         });
         const balanceBefore = targetUser.account.balance;
-        const balanceAfter = 10000.0;
+        const balanceAfter = 100000.0;
         const [updatedAccount] = await this.prisma.$transaction([
             this.prisma.account.update({
                 where: { id: targetUser.account.id },
                 data: {
-                    balance: 10000.0,
-                    equity: 10000.0,
+                    balance: 100000.0,
+                    equity: 100000.0,
                     usedMargin: 0.0,
-                    freeMargin: 10000.0,
+                    freeMargin: 100000.0,
                     marginLevel: 0.0,
                 },
             }),
@@ -163,7 +170,7 @@ let AdminService = class AdminService {
                     adminEmail,
                     action: 'RESET_BALANCE',
                     targetUserId,
-                    details: `Admin reset virtual balance to $10,000.00 (from $${balanceBefore})`,
+                    details: `Admin reset virtual balance to ₹1,00,000.00 (from ₹${balanceBefore.toLocaleString('en-IN')})`,
                     reason,
                 },
             }),
@@ -171,9 +178,9 @@ let AdminService = class AdminService {
                 data: {
                     accountId: targetUser.account.id,
                     type: 'RESET_BALANCE',
-                    amount: 10000.0 - balanceBefore,
+                    amount: 100000.0 - balanceBefore,
                     balanceBefore,
-                    balanceAfter: 10000.0,
+                    balanceAfter: 100000.0,
                     note: `Admin Reset by ${adminEmail}: ${reason}`,
                 },
             }),
@@ -182,7 +189,7 @@ let AdminService = class AdminService {
         return {
             success: true,
             account: updatedAccount,
-            message: `User demo account reset to $10,000.00`,
+            message: `User demo account reset to ₹1,00,000.00`,
         };
     }
     async updatePairSettings(adminId, adminEmail, pairId, data) {
@@ -217,7 +224,7 @@ let AdminService = class AdminService {
             orderBy: { createdAt: 'desc' },
             take: 100,
             include: {
-                targetUser: { select: { id: true, email: true, name: true } },
+                targetUser: { select: { id: true, email: true, full_name: true } },
             },
         });
     }
@@ -228,9 +235,118 @@ let AdminService = class AdminService {
             include: {
                 account: {
                     include: {
-                        user: { select: { email: true, name: true } },
+                        user: { select: { id: true, email: true, full_name: true, mobile: true } },
                     },
                 },
+            },
+        });
+    }
+    async updateUserKyc(adminId, adminEmail, targetUserId, kycStatus) {
+        const valid = ['pending', 'verified', 'rejected'];
+        if (!valid.includes(kycStatus.toLowerCase())) {
+            throw new BadRequestException('Invalid KYC status. Must be pending, verified, or rejected');
+        }
+        const updated = await this.prisma.user.update({
+            where: { id: targetUserId },
+            data: {
+                kyc_status: kycStatus.toLowerCase(),
+                is_verified: kycStatus.toLowerCase() === 'verified' ? true : undefined,
+            },
+        });
+        await this.prisma.auditLog.create({
+            data: {
+                adminId,
+                adminEmail,
+                action: 'UPDATE_KYC',
+                targetUserId,
+                details: `Updated KYC status of ${updated.email} to ${kycStatus.toUpperCase()}`,
+                reason: 'KYC Verification by Compliance Admin',
+            },
+        });
+        return { success: true, user: updated };
+    }
+    async updateUserRole(adminId, adminEmail, targetUserId, role) {
+        if (!['USER', 'ADMIN'].includes(role.toUpperCase())) {
+            throw new BadRequestException('Role must be USER or ADMIN');
+        }
+        const updated = await this.prisma.user.update({
+            where: { id: targetUserId },
+            data: { role: role.toUpperCase() },
+        });
+        await this.prisma.auditLog.create({
+            data: {
+                adminId,
+                adminEmail,
+                action: 'UPDATE_ROLE',
+                targetUserId,
+                details: `Updated user role of ${updated.email} to ${role.toUpperCase()}`,
+                reason: 'Role alteration by Super Admin',
+            },
+        });
+        return { success: true, user: updated };
+    }
+    async closePositionForce(adminId, adminEmail, positionId, reason) {
+        const position = await this.prisma.position.findUnique({
+            where: { id: positionId },
+            include: { account: true },
+        });
+        if (!position || position.status !== 'OPEN') {
+            throw new NotFoundException('Open position not found');
+        }
+        const result = await this.tradingService.closePosition(position.account.userId, positionId, 'ADMIN_FORCE_SQUARE_OFF');
+        await this.prisma.auditLog.create({
+            data: {
+                adminId,
+                adminEmail,
+                action: 'FORCE_CLOSE_POSITION',
+                targetUserId: position.account.userId,
+                details: `Admin force squared off ${position.symbol} (${position.type} ${position.lots} lots)`,
+                reason: reason || 'Risk Management Auto/Manual Square-off',
+            },
+        });
+        return { success: true, message: 'Position squared off successfully', result };
+    }
+    async getAdminIpos() {
+        return this.prisma.ipo.findMany({
+            orderBy: { openDate: 'desc' },
+            include: {
+                _count: {
+                    select: { applications: true },
+                },
+            },
+        });
+    }
+    async updateAdminIpo(adminId, adminEmail, ipoId, data) {
+        const ipo = await this.prisma.ipo.findUnique({ where: { id: ipoId } });
+        if (!ipo)
+            throw new NotFoundException('IPO not found');
+        const updated = await this.prisma.ipo.update({
+            where: { id: ipoId },
+            data: {
+                gmp: data.gmp !== undefined ? data.gmp : ipo.gmp,
+                status: data.status ? data.status.toUpperCase() : ipo.status,
+                priceBand: data.priceBand || ipo.priceBand,
+                subscriptionRate: data.subscriptionRate !== undefined ? data.subscriptionRate : ipo.subscriptionRate,
+            },
+        });
+        await this.prisma.auditLog.create({
+            data: {
+                adminId,
+                adminEmail,
+                action: 'UPDATE_IPO',
+                details: `Updated IPO ${ipo.companyName} (${ipo.symbol}): GMP=₹${updated.gmp ?? 0}, Status=${updated.status}`,
+                reason: 'Primary market parameter adjustment by Admin',
+            },
+        });
+        return { success: true, ipo: updated };
+    }
+    async getAdminIpoApplications() {
+        return this.prisma.ipoApplication.findMany({
+            orderBy: { appliedAt: 'desc' },
+            take: 100,
+            include: {
+                user: { select: { id: true, full_name: true, email: true, mobile: true } },
+                ipo: { select: { id: true, symbol: true, companyName: true, priceBand: true, category: true } },
             },
         });
     }
@@ -239,7 +355,8 @@ AdminService = __decorate([
     Injectable(),
     __metadata("design:paramtypes", [PrismaService,
         ForexEngineService,
-        MarketGateway])
+        MarketGateway,
+        TradingService])
 ], AdminService);
 export { AdminService };
 //# sourceMappingURL=admin.service.js.map

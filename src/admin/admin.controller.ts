@@ -44,6 +44,21 @@ export class AdminController {
     );
   }
 
+  // Alias for /admin/balance/adjust
+  @Post('balance/adjust')
+  async adjustBalanceAlias(
+    @Request() req: any,
+    @Body() body: { userId: string; amount: number; reason: string },
+  ) {
+    return this.adminService.adjustUserBalance(
+      req.user.id,
+      req.user.email,
+      body.userId,
+      body.amount,
+      body.reason,
+    );
+  }
+
   @Post('users/:id/reset')
   async resetUser(
     @Request() req: any,
@@ -55,6 +70,48 @@ export class AdminController {
       req.user.email,
       targetUserId,
       body.reason,
+    );
+  }
+
+  // Alias for /admin/balance/reset
+  @Post('balance/reset')
+  async resetUserAlias(
+    @Request() req: any,
+    @Body() body: { userId: string; reason: string },
+  ) {
+    return this.adminService.resetUserDemoAccount(
+      req.user.id,
+      req.user.email,
+      body.userId,
+      body.reason,
+    );
+  }
+
+  @Patch('users/:id/kyc')
+  async updateUserKyc(
+    @Request() req: any,
+    @Param('id') targetUserId: string,
+    @Body() body: { kycStatus: string },
+  ) {
+    return this.adminService.updateUserKyc(
+      req.user.id,
+      req.user.email,
+      targetUserId,
+      body.kycStatus,
+    );
+  }
+
+  @Patch('users/:id/role')
+  async updateUserRole(
+    @Request() req: any,
+    @Param('id') targetUserId: string,
+    @Body() body: { role: string },
+  ) {
+    return this.adminService.updateUserRole(
+      req.user.id,
+      req.user.email,
+      targetUserId,
+      body.role,
     );
   }
 
@@ -80,5 +137,43 @@ export class AdminController {
   @Get('positions')
   async getAllPositions() {
     return this.adminService.getAllPositions();
+  }
+
+  @Post('positions/:id/close')
+  async closePositionForce(
+    @Request() req: any,
+    @Param('id') positionId: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.adminService.closePositionForce(
+      req.user.id,
+      req.user.email,
+      positionId,
+      body.reason || 'Admin manual square-off',
+    );
+  }
+
+  @Get('ipos')
+  async getAdminIpos() {
+    return this.adminService.getAdminIpos();
+  }
+
+  @Patch('ipos/:id')
+  async updateAdminIpo(
+    @Request() req: any,
+    @Param('id') ipoId: string,
+    @Body() body: { gmp?: number; status?: string; priceBand?: string; subscriptionRate?: number },
+  ) {
+    return this.adminService.updateAdminIpo(
+      req.user.id,
+      req.user.email,
+      ipoId,
+      body,
+    );
+  }
+
+  @Get('ipo-applications')
+  async getAdminIpoApplications() {
+    return this.adminService.getAdminIpoApplications();
   }
 }

@@ -13,7 +13,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 import { Controller, Post, Get, Body, UseGuards, Request, Res, Req, HttpCode, HttpStatus, } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
-import { RegisterDto, LoginDto, SendOtpDto, SendEmailOtpDto, VerifyOtpDto, ForgotPasswordDto, ResetPasswordDto, } from './dto/auth.dto.js';
+import { RegisterDto, LoginDto, SendOtpDto, SendEmailOtpDto, VerifyOtpDto, ForgotPasswordDto, ResetPasswordDto, ResetPasswordOtpDto, } from './dto/auth.dto.js';
 let AuthController = class AuthController {
     authService;
     constructor(authService) {
@@ -124,6 +124,9 @@ let AuthController = class AuthController {
     async resetPassword(body) {
         return this.authService.resetPassword(body);
     }
+    async resetPasswordOtp(body) {
+        return this.authService.resetPasswordWithOtp(body);
+    }
 };
 __decorate([
     Post('register'),
@@ -219,6 +222,14 @@ __decorate([
     __metadata("design:paramtypes", [ResetPasswordDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "resetPassword", null);
+__decorate([
+    Post('reset-password-otp'),
+    HttpCode(HttpStatus.OK),
+    __param(0, Body()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [ResetPasswordOtpDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resetPasswordOtp", null);
 AuthController = __decorate([
     Controller(['auth', 'api/auth']),
     __metadata("design:paramtypes", [AuthService])

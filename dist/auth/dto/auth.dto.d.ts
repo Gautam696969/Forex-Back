@@ -4,6 +4,7 @@ export declare class RegisterDto {
     mobile: string;
     password: string;
     confirmPassword: string;
+    pan?: string;
 }
 export declare class LoginDto {
     identifier: string;
@@ -26,5 +27,10 @@ export declare class ForgotPasswordDto {
 }
 export declare class ResetPasswordDto {
     token: string;
+    newPassword: string;
+}
+export declare class ResetPasswordOtpDto {
+    identifier: string;
+    otp: string;
     newPassword: string;
 }

@@ -151,6 +151,14 @@ export declare class AuthService {
         success: boolean;
         message: string;
     }>;
+    resetPasswordWithOtp(dto: {
+        identifier: string;
+        otp: string;
+        newPassword: string;
+    }): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     private generateTokenPair;
     private hashToken;
     private sanitizeUser;
